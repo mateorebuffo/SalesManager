@@ -1,0 +1,126 @@
+================================================================================
+CONCEPTOS - Sistema de Ventas
+================================================================================
+
+--------------------------------------------------------------------------------
+CONCEPTO 1: fetch() — qué es y para qué sirve
+--------------------------------------------------------------------------------
+
+fetch() es una función nativa del browser (viene incorporada, no hay que
+instalar nada) que permite hacer solicitudes HTTP desde JavaScript.
+Es la forma estándar de comunicarse con un servidor desde el frontend.
+
+Ejemplo básico:
+  const res = await fetch("http://localhost:8000/clients");
+  const data = await res.json();
+
+Lo que hace paso a paso:
+  1. El browser envía una solicitud HTTP al servidor (GET, POST, etc.)
+  2. El servidor procesa la solicitud y devuelve una respuesta
+  3. fetch() devuelve esa respuesta como un objeto
+  4. .json() convierte el cuerpo de la respuesta de texto a objeto JavaScript
+
+Parámetros opcionales (método, headers, body):
+  const res = await fetch("http://localhost:8000/sales", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ client_id: 1, items: [...] }),
+  });
+
+fetch() por sí sola NO maneja autenticación — simplemente envía la
+solicitud tal cual, sin ningún header extra.
+
+
+--------------------------------------------------------------------------------
+CONCEPTO 2: apiFetch() — el wrapper personalizado
+--------------------------------------------------------------------------------
+
+apiFetch() es una función que escribimos nosotros en App.jsx que envuelve
+(wrappea) a fetch() para agregarle comportamiento automático.
+
+El código:
+
+  async function apiFetch(url, options = {}) {
+    const token = localStorage.getItem("auth_token");
+    const res = await fetch(url, {          ← llama al fetch nativo
+      ...options,
+      headers: {
+        ...options.headers,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (res.status === 401) {               ← si el token expiró
+      localStorage.removeItem("auth_token");
+      _onUnauthorized?.();                  ← vuelve al login automáticamente
+    }
+    return res;
+  }
+
+Qué hace en cada llamada:
+  1. Lee el token JWT guardado en localStorage
+  2. Lo agrega automáticamente como header: Authorization: Bearer <token>
+  3. Hace el fetch() real con ese header incluido
+  4. Si el servidor responde 401 (token inválido o expirado):
+       - Borra el token del localStorage
+       - Llama a _onUnauthorized() que le dice a App() que vuelva al login
+  5. Devuelve la respuesta igual que fetch() normal
+
+Se usa exactamente igual que fetch():
+  const res = await apiFetch(`${API}/clients`);
+  const res = await apiFetch(`${API}/sales`, { method: "POST", ... });
+
+
+--------------------------------------------------------------------------------
+CONCEPTO 3: por qué necesitamos apiFetch() y no solo fetch()
+--------------------------------------------------------------------------------
+
+Sin autenticación (como estaba antes):
+  - El frontend llamaba a fetch() directamente
+  - Cualquiera que supiera la URL del backend podía consultar o modificar datos
+  - No había ningún control de acceso
+
+Con autenticación JWT (como está ahora):
+  - Cada request al backend debe incluir el token en el header
+  - Sin el token, el backend devuelve 401 y rechaza la solicitud
+  - El token se obtiene al hacer login en POST /auth/token
+
+Si usáramos fetch() directamente en cada lugar, tendríamos que repetir
+este código en los 17+ lugares donde hacemos requests:
+
+  // SIN apiFetch — repetir esto en cada request (mal):
+  const token = localStorage.getItem("auth_token");
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+apiFetch() centraliza esa lógica: se escribe una sola vez y todos
+los demás lugares del código simplemente llaman a apiFetch() sin
+preocuparse por el token.
+
+
+--------------------------------------------------------------------------------
+CONCEPTO 4: el bug que ocurrió (recursión infinita)
+--------------------------------------------------------------------------------
+
+Cuando reemplazamos todos los fetch() por apiFetch() en el código,
+usamos un reemplazo masivo automático. Ese reemplazo también tocó
+la línea DENTRO de apiFetch() que llama a fetch():
+
+  // ANTES (correcto):
+  async function apiFetch(url, options = {}) {
+    const res = await fetch(url, { ... });   ← llama al fetch del browser
+  }
+
+  // DESPUÉS DEL REEMPLAZO (bug):
+  async function apiFetch(url, options = {}) {
+    const res = await apiFetch(url, { ... }); ← se llama a sí misma !!!
+  }
+
+Esto generaba una recursión infinita:
+  apiFetch() → llama a apiFetch() → llama a apiFetch() → llama a apiFetch()...
+  hasta agotar la memoria disponible ("Maximum call stack size exceeded").
+
+La solución fue restaurar el fetch() nativo dentro de apiFetch(),
+dejando que todas las demás llamadas en el resto del código usen apiFetch().
+
+================================================================================

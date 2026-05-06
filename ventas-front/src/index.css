@@ -1,0 +1,74 @@
+/* ── Reset global ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  background: #0c0c14;
+  overflow-x: hidden;
+  /* Evitar que iOS Safari haga zoom automático al enfocar inputs */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  background: #0c0c14;
+  color: rgba(255, 255, 255, 0.87);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Evitar overscroll/bounce vertical en iOS que desplaza el contenido */
+  overscroll-behavior-y: none;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ── Reset de botones — los estilos de la app se aplican inline ── */
+button {
+  box-sizing: border-box;
+  border-radius: 0;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: inherit;
+  font-family: inherit;
+  font-weight: inherit;
+  line-height: 1;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  /* Quitar highlight azul en tap iOS */
+  -webkit-tap-highlight-color: transparent;
+  /* Quitar outline por defecto */
+  outline: none;
+}
+
+/* ── Reset de inputs ── */
+input, select, textarea {
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Quitar los 300ms de delay en tap en iOS */
+* {
+  touch-action: manipulation;
+}

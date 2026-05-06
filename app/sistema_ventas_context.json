@@ -1,0 +1,296 @@
+{
+  "meta": {
+    "project_id": "sistema_ventas",
+    "project_name": "Sistema Ventas Mostrador",
+    "domain": "Ventas + Cuentas Corrientes (deuda) para negocio específico",
+    "target_devices": ["iPhone", "Web desktop"],
+    "primary_user": "Empleado en mostrador",
+    "non_goals": [
+      "Multi-tenant",
+      "Roles/usuarios por ahora",
+      "Inventario avanzado",
+      "Facturación electrónica"
+    ]
+  },
+  "stack": {
+    "backend": {
+      "language": "Python",
+      "framework": "FastAPI",
+      "orm": "SQLAlchemy",
+      "db": "PostgreSQL",
+      "migrations": "No explicit (pendiente si se agrega Alembic)",
+      "server": "uvicorn",
+      "api_base_url": "http://127.0.0.1:8000"
+    },
+    "frontend": {
+      "framework": "React (Vite)",
+      "routing": "State-based tabs (sin react-router)",
+      "styling": "Inline styles, dark theme, POS/minimal",
+      "api_base_url": "http://127.0.0.1:8000"
+    }
+  },
+  "time_and_money": {
+    "currency": "ARS (presentación), Decimal en backend",
+    "timezone": {
+      "local_tz": "America/Argentina/Cordoba",
+      "strategy": "Preferible guardar UTC en DB y convertir al mostrar (actualmente se formatea en frontend con Intl es-AR)"
+    }
+  },
+  "data_model": {
+    "Client": {
+      "pk": "id (int autoincrement)",
+      "fields": {
+        "name": "string (unique exact match validation in API)",
+        "phone": "string nullable",
+        "notes": "string nullable"
+      }
+    },
+    "Product": {
+      "pk": "id (int autoincrement)",
+      "fields": {
+        "name": "string",
+        "type": "string/enum-like",
+        "active": "bool"
+      },
+      "constraints": {
+        "unique": "name + type"
+      }
+    },
+    "Sale": {
+      "pk": "id (int autoincrement)",
+      "fields": {
+        "client_id": "FK Client.id",
+        "sale_date": "datetime",
+        "notes": "string nullable"
+      },
+      "relationships": {
+        "items": "SaleItem[]",
+        "payments": "Payment[] (sale_id = Sale.id)"
+      }
+    },
+    "SaleItem": {
+      "pk": "composite or surrogate (implementation-dependent)",
+      "fields": {
+        "sale_id": "FK Sale.id",
+        "product_id": "FK Product.id",
+        "quantity": "Decimal/float (front uses Number)",
+        "unit_price": "Decimal/float",
+        "notes": "string nullable"
+      }
+    },
+    "Payment": {
+      "pk": "id (int autoincrement)",
+      "fields": {
+        "client_id": "FK Client.id",
+        "sale_id": "FK Sale.id nullable",
+        "payment_date": "datetime",
+        "amount": "Decimal",
+        "notes": "string nullable"
+      },
+      "business_semantics": {
+        "sale_payment": "sale_id != null descuenta saldo de una venta",
+        "general_payment": "sale_id == null descuenta deuda general del cliente (se considera en statement)"
+      }
+    }
+  },
+  "business_rules": {
+    "sale_create": [
+      "client_id debe existir",
+      "productos deben existir y estar active=true",
+      "initial_payment_amount >= 0",
+      "initial_payment_amount <= total",
+      "sale_date por default ahora, se permite enviar otra fecha"
+    ],
+    "product_uniqueness": "Product.name debe ser único por Product.type (validación a nivel DB/API)",
+    "payments": {
+      "sale_payment": [
+        "sale_id debe existir",
+        "amount > 0",
+        "no permitir sobrepago (amount <= balance actual)"
+      ],
+      "general_payment": [
+        "client_id debe existir",
+        "sale_id = null",
+        "amount > 0"
+      ]
+    },
+    "client_statement_balance": "total_balance = sum( (sum(items) - sum(payments where sale_id = sale.id)) ) - sum(general_payments where sale_id is null ) (si está implementado así)"
+  },
+  "api_endpoints": {
+    "clients": {
+      "GET /clients": {
+        "desc": "Listar clientes",
+        "response": "ClientOut[]"
+      },
+      "POST /clients": {
+        "desc": "Crear cliente (evita nombre duplicado exacto)",
+        "request": {
+          "name": "string",
+          "phone": "string|null",
+          "notes": "string|null"
+        }
+      },
+      "GET /clients/{client_id}/statement": {
+        "desc": "Resumen por ventas: total/paid/balance y total_balance",
+        "response": {
+          "client_id": "int",
+          "client_name": "string",
+          "total_balance": "decimal string/number",
+          "sales": [
+            {
+              "sale_id": "int",
+              "sale_date": "datetime",
+              "total": "decimal",
+              "paid": "decimal",
+              "balance": "decimal"
+            }
+          ]
+        }
+      },
+      "GET /clients/{client_id}/deliveries": {
+        "desc": "Items entregados al cliente ordenado por fecha desc",
+        "response": "ClientDeliveriesOut"
+      },
+      "POST /clients/{client_id}/payments": {
+        "desc": "Pago general a cuenta del cliente (sale_id null)",
+        "request": {
+          "amount": "decimal",
+          "payment_date": "datetime|null",
+          "notes": "string|null"
+        }
+      }
+    },
+    "products": {
+      "GET /products": {
+        "desc": "Listar productos"
+      },
+      "POST /products": {
+        "desc": "Crear producto (único por type)",
+        "request": {
+          "name": "string",
+          "type": "string",
+          "active": "bool"
+        },
+        "errors": ["409 si duplicado"]
+      }
+    },
+    "sales": {
+      "POST /sales": {
+        "desc": "Crear venta con items + pago inicial opcional",
+        "request": {
+          "client_id": "int",
+          "sale_date": "datetime ISO",
+          "items": [
+            {
+              "product_id": "int",
+              "quantity": "number",
+              "unit_price": "number",
+              "notes": "string|null"
+            }
+          ],
+          "initial_payment_amount": "number"
+        },
+        "response": {
+          "sale_id": "int",
+          "total": "decimal",
+          "paid": "decimal",
+          "balance": "decimal"
+        }
+      },
+      "POST /sales/{sale_id}/payments": {
+        "desc": "Agregar pago asociado a una venta",
+        "request": {
+          "amount": "decimal",
+          "payment_date": "datetime|null",
+          "notes": "string|null"
+        },
+        "response": {
+          "sale_id": "int",
+          "total": "decimal",
+          "paid": "decimal",
+          "balance": "decimal"
+        }
+      }
+    }
+  },
+  "frontend_state": {
+    "current_screens": [
+      {
+        "id": "sale",
+        "name": "Nueva venta (POS)",
+        "features": [
+          "SearchDropdown cliente",
+          "SearchDropdown producto",
+          "Agregar item (qty, price)",
+          "Lista items con scroll interno",
+          "Barra inferior fija (total, pago inicial, confirmar)",
+          "Reset completo (incluye cliente) al confirmar",
+          "Foco vuelve a buscador producto al agregar item"
+        ]
+      },
+      {
+        "id": "client",
+        "name": "Cliente (deuda + ventas)",
+        "features": [
+          "SearchDropdown cliente",
+          "Fetch statement al seleccionar cliente",
+          "Muestra total_balance",
+          "Lista ventas (sale_id, fecha, total, pagado, saldo) con scroll",
+          "Botón placeholder 'Registrar pago' (pendiente implementarlo)"
+        ]
+      }
+    ],
+    "ui_constraints": {
+      "mobile_first": true,
+      "iphone_notes": [
+        "Teclado/Focus: usar setTimeout para focus tras render",
+        "Evitar alert() a futuro -> reemplazar por toast",
+        "Dropdown absoluto con zIndex alto"
+      ]
+    }
+  },
+  "known_issues_or_notes": [
+    "Se priorizó solución sin librerías (sin react-router).",
+    "Se corrigió bug previo: no usar hooks dentro de handlers.",
+    "Tema dark: asegurar color explícito para evitar texto blanco sobre fondo blanco.",
+    "Scroll: items con maxHeight+overflow para evitar que barra fija tape contenido."
+  ],
+  "next_steps": [
+    {
+      "id": "client_payments_ui",
+      "title": "Registrar pago desde pantalla Cliente",
+      "details": [
+        "Input amount + notes + submit",
+        "POST /clients/{id}/payments",
+        "Refrescar statement automáticamente"
+      ]
+    },
+    {
+      "id": "quick_payment_screen",
+      "title": "Pantalla Cobro rápido (opcional)",
+      "details": [
+        "Buscar cliente",
+        "Mostrar saldo",
+        "Registrar pago general"
+      ]
+    },
+    {
+      "id": "replace_alerts",
+      "title": "Reemplazar alert() por toast",
+      "details": ["Mejora UX iPhone, no frena flujo de caja"]
+    },
+    {
+      "id": "deploy_local_network",
+      "title": "Acceso desde iPhone en la misma red",
+      "details": [
+        "Bind uvicorn a 0.0.0.0",
+        "Usar IP LAN en frontend",
+        "CORS config si aplica"
+      ]
+    }
+  ],
+  "how_to_resume_in_new_chat": {
+    "instruction": "Pegá este JSON y decí: 'Continuamos el proyecto sistema_ventas desde este context. Quiero implementar el next_step client_payments_ui.'",
+    "current_focus": "Pantalla Cliente (deuda + ventas) y agregar registrar pago"
+  }
+}

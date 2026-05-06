@@ -1,0 +1,1392 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+
+const API = "http://192.168.0.103:8000";
+
+/* =========================
+   Toast (sin librerías)
+========================= */
+function ToastHost({ toasts, removeToast }) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        left: 0,
+        right: 0,
+        top: 12,
+        zIndex: 9999,
+        pointerEvents: "none",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        alignItems: "center",
+        padding: "0 12px",
+      }}
+    >
+      {toasts.map((t) => (
+        <div
+          key={t.id}
+          style={{
+            width: "min(520px, 100%)",
+            borderRadius: 14,
+            border: "1px solid #2a2a2a",
+            background: "#0b0b0b",
+            color: "#fff",
+            padding: "12px 12px",
+            boxShadow: "0 8px 30px rgba(0,0,0,.5)",
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            pointerEvents: "auto",
+          }}
+        >
+          <div style={{ display: "grid", gap: 4 }}>
+            <div style={{ fontWeight: 900, fontSize: 13, color: "#bbb" }}>
+              {t.type === "success" ? "OK" : t.type === "error" ? "Error" : "Info"}
+            </div>
+            <div style={{ fontWeight: 800 }}>{t.message}</div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => removeToast(t.id)}
+            style={{
+              height: 36,
+              minWidth: 40,
+              borderRadius: 10,
+              border: "1px solid #333",
+              background: "#111",
+              color: "#fff",
+              fontWeight: 900,
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Dropdown buscable (solo muestra lista si hay query) */
+function SearchDropdown({
+  inputRef,
+  label,
+  placeholder,
+  items,
+  getKey,
+  getLabel,
+  query,
+  setQuery,
+  selected,
+  setSelected,
+  maxResults = 12,
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return items
+      .filter((it) => getLabel(it).toLowerCase().includes(q))
+      .slice(0, maxResults);
+  }, [items, query, getLabel, maxResults]);
+
+  useEffect(() => {
+    const onDown = (e) => {
+      if (!wrapRef.current) return;
+      if (!wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={wrapRef}
+      style={{
+        marginBottom: 14,
+        width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box",
+      }}
+    >
+      <label style={{ display: "block", marginBottom: 6, color: "#fff" }}>{label}</label>
+
+      {selected ? (
+        <div
+          style={{
+            border: "1px solid #333",
+            borderRadius: 12,
+            padding: 12,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 10,
+            background: "#1b1b1b",
+            color: "#fff",
+          }}
+        >
+          <div style={{ fontWeight: 800 }}>{getLabel(selected)}</div>
+
+          <button
+            type="button"
+            style={{
+              height: 44,
+              minWidth: 110,
+              borderRadius: 12,
+              border: "1px solid #444",
+              background: "#111",
+              color: "#fff",
+              fontWeight: 800,
+            }}
+            onClick={() => {
+              setSelected(null);
+              setQuery("");
+              setOpen(true);
+              setTimeout(() => inputRef?.current?.focus(), 0);
+            }}
+          >
+            Cambiar
+          </button>
+        </div>
+      ) : (
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            maxWidth: "100%",
+            boxSizing: "border-box",
+          }}
+        >
+          <input
+            ref={inputRef}
+            placeholder={placeholder}
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            style={{
+              width: "100%",
+              height: 48,
+              fontSize: 16,
+              borderRadius: 12,
+              border: "1px solid #333",
+              background: "#1b1b1b",
+              color: "#fff",
+              padding: "0 12px",
+              outline: "none",
+            }}
+          />
+
+          {open && query.trim() !== "" && (
+            <div
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                top: 54,
+                zIndex: 50,
+                border: "1px solid #333",
+                borderRadius: 12,
+                background: "#121212",
+                overflow: "hidden",
+                maxHeight: 280,
+                overflowY: "auto",
+                maxWidth: "100%",
+                boxSizing: "border-box",
+              }}
+            >
+              {filtered.length === 0 ? (
+                <div style={{ padding: 12, color: "#bbb" }}>Sin resultados</div>
+              ) : (
+                filtered.map((it) => (
+                  <button
+                    key={getKey(it)}
+                    type="button"
+                    style={{
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "12px 12px",
+                      border: "none",
+                      borderBottom: "1px solid #222",
+                      background: "transparent",
+                      color: "#fff",
+                      fontSize: 16,
+                    }}
+                    onClick={() => {
+                      setSelected(it);
+                      setQuery("");
+                      setOpen(false);
+                    }}
+                  >
+                    {getLabel(it)}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TopTabs({ screen, setScreen }) {
+  const tabStyle = (active) => ({
+    flex: 1,
+    height: 44,
+    borderRadius: 12,
+    border: "1px solid #333",
+    background: active ? "#1b1b1b" : "#111",
+    color: "#fff",
+    fontWeight: 900,
+  });
+
+  return (
+    <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+      <button style={tabStyle(screen === "sale")} onClick={() => setScreen("sale")}>
+        Nueva venta
+      </button>
+      <button style={tabStyle(screen === "client")} onClick={() => setScreen("client")}>
+        Cliente
+      </button>
+    </div>
+  );
+}
+
+function formatArDate(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return new Intl.DateTimeFormat("es-AR", {
+    year: "2-digit",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
+}
+
+/** Pantalla: Cliente (Saldo + acciones) */
+function ClientScreen({ clients, pushToast }) {
+  const clientRef = useRef(null);
+  const [clientQuery, setClientQuery] = useState("");
+  const [selectedClient, setSelectedClient] = useState(null); // {id, name}
+
+  const [loading, setLoading] = useState(false);
+  const [statement, setStatement] = useState(null);
+  const [error, setError] = useState("");
+
+  const [deliveriesLoading, setDeliveriesLoading] = useState(false);
+  const [deliveriesError, setDeliveriesError] = useState("");
+  const [deliveriesData, setDeliveriesData] = useState(null);
+
+  // Vista interna
+  const [clientView, setClientView] = useState("deliveries"); // "new_payment" | "deliveries" | "payments"
+
+  // Pagos (lista)
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [paymentsError, setPaymentsError] = useState("");
+  const [paymentsData, setPaymentsData] = useState([]); // array de pagos
+
+  // UI pago general
+  const [payAmount, setPayAmount] = useState("");
+  const [payNotes, setPayNotes] = useState("");
+  const [paySubmitting, setPaySubmitting] = useState(false);
+
+  // Entregas
+  const [showAllDeliveries, setShowAllDeliveries] = useState(false);
+
+  useEffect(() => {
+    setTimeout(() => clientRef.current?.focus(), 0);
+  }, []);
+
+  const fetchStatement = async (clientId) => {
+    const res = await fetch(`${API}/clients/${clientId}/statement`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Error obteniendo estado del cliente");
+    }
+    return res.json();
+  };
+
+  const fetchDeliveries = async (clientId) => {
+    const res = await fetch(`${API}/clients/${clientId}/deliveries`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Error obteniendo entregas del cliente");
+    }
+    return res.json();
+  };
+
+  // Tu endpoint devuelve LISTA
+  const fetchPayments = async (clientId) => {
+    const res = await fetch(`${API}/clients/${clientId}/payments`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Error obteniendo pagos del cliente");
+    }
+    return res.json(); // array
+  };
+
+  // Cuando elijo cliente: trae statement + deliveries
+  useEffect(() => {
+    const run = async () => {
+      if (!selectedClient) {
+        setStatement(null);
+        setError("");
+
+        setDeliveriesData(null);
+        setDeliveriesError("");
+        setDeliveriesLoading(false);
+
+        setPaymentsData([]);
+        setPaymentsError("");
+        setPaymentsLoading(false);
+
+        setClientView("deliveries");
+        return;
+      }
+
+      setClientView("deliveries"); // default
+      setLoading(true);
+      setDeliveriesLoading(true);
+      setError("");
+      setDeliveriesError("");
+
+      // pagos on-demand al entrar a "payments"
+      setPaymentsData([]);
+      setPaymentsError("");
+      setPaymentsLoading(false);
+
+      try {
+        const [st, del] = await Promise.all([
+          fetchStatement(selectedClient.id),
+          fetchDeliveries(selectedClient.id),
+        ]);
+        setStatement(st);
+        setDeliveriesData(del);
+      } catch (e) {
+        const msg = e.message || "Error";
+        setError(msg);
+        setStatement(null);
+        setDeliveriesError(msg);
+        setDeliveriesData(null);
+      } finally {
+        setLoading(false);
+        setDeliveriesLoading(false);
+      }
+    };
+
+    run();
+  }, [selectedClient]);
+
+  //Entregas
+  useEffect(() => {
+      if (selectedClient) setShowAllDeliveries(false);
+    }, [selectedClient]);
+
+  // Cargar pagos SOLO cuando el usuario entra a "payments"
+  useEffect(() => {
+    const run = async () => {
+      if (!selectedClient) return;
+      if (clientView !== "payments") return;
+
+      // cache: si ya tengo data, no refetcheo
+      if (paymentsData && paymentsData.length > 0) return;
+
+      setPaymentsLoading(true);
+      setPaymentsError("");
+
+      try {
+        const data = await fetchPayments(selectedClient.id);
+        // seguridad: solo generales en UI
+        const onlyGeneral = (data || []).filter((p) => p.sale_id == null);
+        setPaymentsData(onlyGeneral);
+      } catch (e) {
+        setPaymentsError(e.message || "Error");
+        setPaymentsData([]);
+      } finally {
+        setPaymentsLoading(false);
+      }
+    };
+
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientView, selectedClient]);
+
+  const submitGeneralPayment = async () => {
+    if (!selectedClient) return;
+
+    const amount = Number(payAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      pushToast("Ingresá un monto válido (> 0).", "error");
+      return;
+    }
+
+    setPaySubmitting(true);
+    setError("");
+
+    try {
+      const res = await fetch(`${API}/clients/${selectedClient.id}/payments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount,
+          payment_date: null, // ahora
+          notes: payNotes?.trim() ? payNotes.trim() : null,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Error registrando pago");
+      }
+
+      setPayAmount("");
+      setPayNotes("");
+
+      // refresco saldo (statement)
+      const st = await fetchStatement(selectedClient.id);
+      setStatement(st);
+
+      // refresco pagos si ya se habían cargado (o si estoy en tab pagos)
+      try {
+        if (clientView === "payments" || (paymentsData && paymentsData.length > 0)) {
+          const p = await fetchPayments(selectedClient.id);
+          const onlyGeneral = (p || []).filter((x) => x.sale_id == null);
+          setPaymentsData(onlyGeneral);
+          setPaymentsError("");
+        }
+      } catch {
+        // no bloquear flujo
+      }
+
+      pushToast("Pago registrado ✅", "success");
+    } catch (e) {
+      pushToast(e.message || "Error", "error");
+      setError(e.message || "Error");
+    } finally {
+      setPaySubmitting(false);
+    }
+  };
+
+  const deliveriesBySale = useMemo(() => {
+    const rows = deliveriesData?.deliveries || [];
+    const map = new Map();
+
+    for (const r of rows) {
+      const key = r.sale_id;
+      if (!map.has(key)) {
+        map.set(key, { sale_id: r.sale_id, sale_date: r.sale_date, rows: [], total: 0 });
+      }
+      const g = map.get(key);
+      g.rows.push(r);
+      g.total += Number(r.subtotal || 0);
+    }
+
+    return Array.from(map.values()).sort((a, b) => {
+      const da = new Date(a.sale_date).getTime();
+      const db = new Date(b.sale_date).getTime();
+      if (db !== da) return db - da;
+      return (b.sale_id || 0) - (a.sale_id || 0);
+    });
+  }, [deliveriesData]);
+
+  // ===== Export texto (copiable para WhatsApp) =====
+  const formatMoney = (n) => {
+    const v = Number(n || 0);
+    if (!Number.isFinite(v)) return "0.00";
+    return v.toFixed(2);
+  };
+
+  const formatNowAR = () => {
+    const now = new Date();
+    return new Intl.DateTimeFormat("es-AR", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(now);
+  };
+
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      pushToast("Copiado ✅", "success");
+    } catch {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        pushToast("Copiado ✅", "success");
+      } catch {
+        pushToast("No se pudo copiar", "error");
+      }
+    }
+  };
+
+  const buildDeliveriesText = () => {
+    const clientName = selectedClient?.name || "";
+    const saldo = formatMoney(statement?.total_balance || 0);
+
+    const header =
+      `📌 Cuenta corriente - ${clientName}\n` +
+      `🕒 ${formatNowAR()}\n` +
+      `💰 Saldo total: $${saldo}\n\n` +
+      `📦 Entregas\n`;
+
+    if (!deliveriesBySale.length) return header + "Sin entregas.\n";
+
+    const blocks = deliveriesBySale.map((sale) => {
+      const lines = sale.rows.map((r, idx) => {
+        const qty = formatMoney(r.quantity);
+        const pu = formatMoney(r.unit_price);
+        const sub = formatMoney(r.subtotal);
+        const note = r.notes ? ` (${r.notes})` : "";
+        return `- ${idx + 1}) ${r.product_name}${note} x${qty} $${pu} Sub: $${sub}`;
+      });
+
+      return (
+        `VENTA #${sale.sale_id} (${formatArDate(sale.sale_date)})\n` +
+        lines.join("\n") +
+        `\nTOTAL VENTA: $${formatMoney(sale.total)}\n`
+      );
+    });
+
+    return header + blocks.join("\n");
+  };
+
+  const buildPaymentsText = () => {
+    const clientName = selectedClient?.name || "";
+    const saldo = formatMoney(statement?.total_balance || 0);
+
+    const header =
+      `📌 Pagos - ${clientName}\n` +
+      `🕒 ${formatNowAR()}\n` +
+      `💰 Saldo total: $${saldo}\n\n` +
+      `💵 Pagos a cuenta\n`;
+
+    if (!paymentsData?.length) return header + "Sin pagos.\n";
+
+    const totalPaid = paymentsData.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+    const lines = paymentsData.map((p) => {
+      const amt = formatMoney(p.amount);
+      const note = p.notes ? ` "${p.notes}"` : "";
+      return `- ${formatArDate(p.payment_date)}  $${amt}${note}`;
+    });
+
+    return header + lines.join("\n") + `\nTOTAL PAGOS: $${formatMoney(totalPaid)}\n`;
+  };
+
+  const actionBtn = (active) => ({
+    height: 44,
+    borderRadius: 12,
+    border: "1px solid #333",
+    background: active ? "#1b1b1b" : "#111",
+    color: "#fff",
+    fontWeight: 900,
+  });
+
+  const exportBtnStyle = {
+    width: "100%",
+    height: 48,
+    borderRadius: 12,
+    border: "1px solid #333",
+    background: "#111",
+    color: "#fff",
+    fontWeight: 900,
+    marginTop: 10,
+  };
+
+  return (
+    <>
+      <SearchDropdown
+        inputRef={clientRef}
+        label="Cliente"
+        placeholder="Buscar cliente..."
+        items={clients}
+        getKey={(c) => c.id}
+        getLabel={(c) => c.name}
+        query={clientQuery}
+        setQuery={setClientQuery}
+        selected={selectedClient}
+        setSelected={(c) => setSelectedClient(c ? { id: c.id, name: c.name } : null)}
+      />
+
+      {!selectedClient ? (
+        <div style={{ color: "#aaa" }}>Elegí un cliente para ver su cuenta corriente.</div>
+      ) : loading ? (
+        <div style={{ color: "#aaa" }}>Cargando...</div>
+      ) : error ? (
+        <div style={{ color: "#ff9a9a" }}>{error}</div>
+      ) : statement ? (
+        <div style={{ display: "grid", gap: 12 }}>
+          {/* Resumen */}
+          <div
+            style={{
+              border: "1px solid #222",
+              background: "#121212",
+              borderRadius: 12,
+              padding: 12,
+            }}
+          >
+            <div style={{ color: "#bbb", fontSize: 12 }}>Saldo total</div>
+            <div style={{ fontWeight: 900, fontSize: 22 }}>
+              ${Number(statement.total_balance || 0).toFixed(2)}
+            </div>
+          </div>
+
+          {/* Acciones */}
+          <div style={{ display: "grid", gap: 10 }}>
+            <button
+              style={actionBtn(clientView === "new_payment")}
+              onClick={() => setClientView("new_payment")}
+            >
+              Nuevo pago
+            </button>
+
+            <button
+              style={actionBtn(clientView === "deliveries")}
+              onClick={() => setClientView("deliveries")}
+            >
+              Entregas
+            </button>
+
+            <button
+              style={actionBtn(clientView === "payments")}
+              onClick={() => setClientView("payments")}
+            >
+              Pagos
+            </button>
+          </div>
+
+          {/* ===== Entregas ===== */}
+          {clientView === "deliveries" ? (
+            <div
+              style={{
+                border: "1px solid #222",
+                background: "#121212",
+                borderRadius: 12,
+                padding: 12,
+              }}
+            >
+              <div style={{ fontWeight: 900, marginBottom: 10 }}>Entregas</div>
+
+              {deliveriesLoading ? (
+                <div style={{ color: "#aaa" }}>Cargando entregas...</div>
+              ) : deliveriesError ? (
+                <div style={{ color: "#ff9a9a" }}>{deliveriesError}</div>
+              ) : deliveriesBySale.length ? (
+                <>
+                  {(() => {
+                    const visible = showAllDeliveries ? deliveriesBySale : deliveriesBySale.slice(0, 5);
+
+                    return (
+                      <div style={{ display: "grid", gap: 12 }}>
+                        {visible.map((sale) => (
+                          <div
+                            key={sale.sale_id}
+                            style={{
+                              border: "1px solid #333",
+                              borderRadius: 12,
+                              background: "#1b1b1b",
+                              overflow: "hidden",
+                            }}
+                          >
+                            {/* Header venta */}
+                            <div
+                              style={{
+                                padding: 12,
+                                borderBottom: "1px solid #2a2a2a",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                gap: 10,
+                                alignItems: "center",
+                              }}
+                            >
+                              <div style={{ fontWeight: 900 }}>VENTA #{sale.sale_id}</div>
+                              <div style={{ color: "#bbb", fontWeight: 800, textAlign: "right" }}>
+                                FECHA: {formatArDate(sale.sale_date)}
+                              </div>
+                            </div>
+
+                            {/* Filas (mobile-friendly) */}
+                            <div style={{ padding: 12, display: "grid", gap: 10 }}>
+                              {sale.rows.map((r, idx) => (
+                                <div
+                                  key={`${r.sale_id}-${r.product_id}-${idx}`}
+                                  style={{
+                                    border: "1px solid #2a2a2a",
+                                    borderRadius: 12,
+                                    padding: 10,
+                                    background: "#161616",
+                                    display: "grid",
+                                    gap: 6,
+                                  }}
+                                >
+                                  <div style={{ fontWeight: 900 }}>
+                                    {idx + 1}) {r.product_name}
+                                  </div>
+
+                                  {r.notes ? (
+                                    <div style={{ color: "#aaa", fontSize: 12 }}>Nota: {r.notes}</div>
+                                  ) : null}
+
+                                  <div style={{ display: "flex", justifyContent: "space-between", color: "#ddd" }}>
+                                    <span>Cant</span>
+                                    <span style={{ fontWeight: 900 }}>{Number(r.quantity || 0).toFixed(2)}</span>
+                                  </div>
+
+                                  <div style={{ display: "flex", justifyContent: "space-between", color: "#ddd" }}>
+                                    <span>Precio unit</span>
+                                    <span style={{ fontWeight: 900 }}>${Number(r.unit_price || 0).toFixed(2)}</span>
+                                  </div>
+
+                                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                    <span style={{ fontWeight: 900 }}>Subtotal</span>
+                                    <span style={{ fontWeight: 900 }}>${Number(r.subtotal || 0).toFixed(2)}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Total */}
+                            <div
+                              style={{
+                                padding: 12,
+                                borderTop: "1px solid #2a2a2a",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                fontWeight: 900,
+                              }}
+                            >
+                              <div>TOTAL</div>
+                              <div>${Number(sale.total || 0).toFixed(2)}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Mostrar más / menos */}
+                  {deliveriesBySale.length > 5 ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllDeliveries((v) => !v)}
+                      style={{
+                        width: "100%",
+                        height: 48,
+                        borderRadius: 12,
+                        border: "1px solid #333",
+                        background: "#111",
+                        color: "#fff",
+                        fontWeight: 900,
+                        marginTop: 10,
+                      }}
+                    >
+                      {showAllDeliveries
+                        ? "Mostrar menos"
+                        : `Mostrar más entregas (${deliveriesBySale.length - 5} más)`}
+                    </button>
+                  ) : null}
+
+                  {/* Exportar (debajo) */}
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(buildDeliveriesText())}
+                    style={{
+                      width: "100%",
+                      height: 48,
+                      borderRadius: 12,
+                      border: "1px solid #333",
+                      background: "#111",
+                      color: "#fff",
+                      fontWeight: 900,
+                      marginTop: 10,
+                    }}
+                  >
+                    Exportar entregas
+                  </button>
+                </>
+              ) : (
+                <div style={{ color: "#aaa" }}>No hay entregas registradas.</div>
+              )}
+            </div>
+          ) : null}
+
+          {/* ===== Nuevo pago ===== */}
+          {clientView === "new_payment" ? (
+            <div
+              style={{
+                border: "1px solid #222",
+                background: "#121212",
+                borderRadius: 12,
+                padding: 12,
+                display: "grid",
+                gap: 10,
+              }}
+            >
+              <div style={{ fontWeight: 900 }}>Registrar pago</div>
+
+              <input
+                inputMode="decimal"
+                placeholder="Monto (ej: 15000)"
+                style={{
+                  width: "100%",
+                  height: 48,
+                  fontSize: 16,
+                  borderRadius: 12,
+                  border: "1px solid #333",
+                  background: "#1b1b1b",
+                  color: "#fff",
+                  padding: "0 12px",
+                  outline: "none",
+                }}
+                value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)}
+              />
+
+              <input
+                placeholder="Notas (opcional)"
+                style={{
+                  width: "100%",
+                  height: 48,
+                  fontSize: 16,
+                  borderRadius: 12,
+                  border: "1px solid #333",
+                  background: "#1b1b1b",
+                  color: "#fff",
+                  padding: "0 12px",
+                  outline: "none",
+                }}
+                value={payNotes}
+                onChange={(e) => setPayNotes(e.target.value)}
+              />
+
+              <button
+                type="button"
+                disabled={paySubmitting}
+                style={{
+                  height: 52,
+                  borderRadius: 12,
+                  border: "1px solid #333",
+                  background: paySubmitting ? "#0b0b0b" : "#111",
+                  color: "#fff",
+                  fontWeight: 900,
+                  fontSize: 16,
+                  opacity: paySubmitting ? 0.7 : 1,
+                }}
+                onClick={submitGeneralPayment}
+              >
+                {paySubmitting ? "Registrando..." : "Confirmar pago"}
+              </button>
+
+              <div style={{ color: "#888", fontSize: 12 }}>
+                Pago a cuenta (no asociado a una venta).
+              </div>
+            </div>
+          ) : null}
+
+          {/* ===== Pagos ===== */}
+          {clientView === "payments" ? (
+            <div
+              style={{
+                border: "1px solid #222",
+                background: "#121212",
+                borderRadius: 12,
+                padding: 12,
+              }}
+            >
+              <div style={{ fontWeight: 900, marginBottom: 10 }}>Pagos</div>
+
+              {paymentsLoading ? (
+                <div style={{ color: "#aaa" }}>Cargando pagos...</div>
+              ) : paymentsError ? (
+                <div style={{ color: "#ff9a9a" }}>{paymentsError}</div>
+              ) : paymentsData.length ? (
+                <>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                      maxHeight: "55vh",
+                      overflowY: "auto",
+                    }}
+                  >
+                    {paymentsData.map((p) => (
+                      <div
+                        key={p.payment_id}
+                        style={{
+                          border: "1px solid #333",
+                          borderRadius: 12,
+                          padding: 12,
+                          background: "#1b1b1b",
+                          display: "grid",
+                          gap: 6,
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <div style={{ fontWeight: 900 }}>Pago #{p.payment_id}</div>
+                          <div style={{ color: "#bbb" }}>{formatArDate(p.payment_date)}</div>
+                        </div>
+
+                        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900 }}>
+                          <span>Monto</span>
+                          <span>${Number(p.amount || 0).toFixed(2)}</span>
+                        </div>
+
+                        {p.notes ? (
+                          <div style={{ color: "#bbb", fontSize: 13 }}>Nota: {p.notes}</div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Botón export debajo de la lista */}
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(buildPaymentsText())}
+                    style={exportBtnStyle}
+                  >
+                    Exportar pagos
+                  </button>
+                </>
+              ) : (
+                <div style={{ color: "#aaa" }}>No hay pagos registrados.</div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+
+
+/** Pantalla: Nueva venta (POS) */
+function NewSaleScreen({ clients, products, pushToast }) {
+  const [clientQuery, setClientQuery] = useState("");
+  const [selectedClient, setSelectedClient] = useState(null);
+
+  const [productQuery, setProductQuery] = useState("");
+  const [selectedProductObj, setSelectedProductObj] = useState(null);
+
+  const [items, setItems] = useState([]);
+
+  const [quantity, setQuantity] = useState("");
+  const [price, setPrice] = useState("");
+  const [payment, setPayment] = useState("");
+
+  const clientRef = useRef(null);
+  const productRef = useRef(null);
+  const qtyRef = useRef(null);
+  const priceRef = useRef(null);
+  const paymentRef = useRef(null);
+
+  useEffect(() => {
+    setTimeout(() => clientRef.current?.focus(), 0);
+  }, []);
+
+  const total = useMemo(() => {
+    return items.reduce((acc, it) => acc + it.quantity * it.unit_price, 0);
+  }, [items]);
+
+  const addItem = () => {
+    if (!selectedProductObj || !quantity || !price) return;
+
+    const q = Number(quantity);
+    const p = Number(price);
+    if (!Number.isFinite(q) || q <= 0) return;
+    if (!Number.isFinite(p) || p < 0) return;
+
+    setItems((prev) => [
+      ...prev,
+      {
+        product_id: selectedProductObj.id,
+        name: selectedProductObj.name,
+        quantity: q,
+        unit_price: p,
+      },
+    ]);
+
+    setSelectedProductObj(null);
+    setProductQuery("");
+    setQuantity("");
+    setPrice("");
+
+    setTimeout(() => productRef.current?.focus(), 0);
+  };
+
+  const removeItem = (index) => {
+    setItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const submitSale = async () => {
+    if (!selectedClient) {
+      pushToast("Seleccioná un cliente.", "error");
+      return;
+    }
+    if (items.length === 0) {
+      pushToast("Agregá al menos un producto.", "error");
+      return;
+    }
+
+    const body = {
+      client_id: selectedClient.id,
+      sale_date: new Date().toISOString(),
+      items: items.map((i) => ({
+        product_id: i.product_id,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+      })),
+      initial_payment_amount: payment ? Number(payment) : 0,
+    };
+
+    const res = await fetch(`${API}/sales`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (res.ok) {
+      setItems([]);
+      setPayment("");
+      setSelectedProductObj(null);
+      setProductQuery("");
+      setQuantity("");
+      setPrice("");
+
+      setSelectedClient(null);
+      setClientQuery("");
+
+      pushToast("Venta creada ✅", "success");
+      setTimeout(() => clientRef.current?.focus(), 0);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      pushToast(err.detail || "Error al crear venta", "error");
+    }
+  };
+
+  return (
+    <>
+      <SearchDropdown
+        inputRef={clientRef}
+        label="Cliente"
+        placeholder="Buscar cliente..."
+        items={clients}
+        getKey={(c) => c.id}
+        getLabel={(c) => c.name}
+        query={clientQuery}
+        setQuery={setClientQuery}
+        selected={selectedClient}
+        setSelected={(c) => setSelectedClient(c ? { id: c.id, name: c.name } : null)}
+      />
+
+      <div style={{ borderTop: "1px solid #222", paddingTop: 14, marginTop: 6 }}>
+        <h3 style={{ margin: "0 0 10px 0" }}>Agregar ítem</h3>
+
+        <SearchDropdown
+          inputRef={productRef}
+          label="Producto"
+          placeholder="Buscar producto..."
+          items={products}
+          getKey={(p) => p.id}
+          getLabel={(p) => p.name}
+          query={productQuery}
+          setQuery={setProductQuery}
+          selected={selectedProductObj}
+          setSelected={(p) => {
+            setSelectedProductObj(p ? { id: p.id, name: p.name } : null);
+            if (p) setTimeout(() => qtyRef.current?.focus(), 0);
+          }}
+        />
+
+        <input
+          ref={qtyRef}
+          inputMode="decimal"
+          placeholder="Cantidad"
+          style={{
+            width: "100%",
+            height: 48,
+            fontSize: 16,
+            marginBottom: 10,
+            borderRadius: 12,
+            border: "1px solid #333",
+            background: "#1b1b1b",
+            color: "#fff",
+            padding: "0 12px",
+            outline: "none",
+          }}
+          value={quantity}
+          onChange={(e) => setQuantity(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              priceRef.current?.focus();
+            }
+          }}
+        />
+
+        <input
+          ref={priceRef}
+          inputMode="decimal"
+          placeholder="Precio unitario"
+          style={{
+            width: "100%",
+            height: 48,
+            fontSize: 16,
+            marginBottom: 10,
+            borderRadius: 12,
+            border: "1px solid #333",
+            background: "#1b1b1b",
+            color: "#fff",
+            padding: "0 12px",
+            outline: "none",
+          }}
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addItem();
+            }
+          }}
+        />
+
+        <button
+          style={{
+            width: "100%",
+            height: 52,
+            fontSize: 16,
+            fontWeight: 800,
+            borderRadius: 12,
+            border: "1px solid #333",
+            background: "#111",
+            color: "#fff",
+          }}
+          onClick={addItem}
+        >
+          + Agregar ítem
+        </button>
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <h3 style={{ margin: "0 0 8px 0" }}>Items</h3>
+
+        {items.length === 0 ? (
+          <div style={{ color: "#aaa" }}>Todavía no hay items.</div>
+        ) : (
+          <div
+            style={{
+              maxHeight: "38vh",
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              border: "1px solid #222",
+              borderRadius: 12,
+              padding: 10,
+              background: "#121212",
+            }}
+          >
+            {items.map((it, idx) => (
+              <div
+                key={idx}
+                style={{
+                  border: "1px solid #333",
+                  borderRadius: 12,
+                  padding: 12,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  background: "#1b1b1b",
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 800 }}>{it.name}</div>
+                  <div style={{ color: "#bbb" }}>
+                    {it.quantity} × {it.unit_price} = ${(it.quantity * it.unit_price).toFixed(2)}
+                  </div>
+                </div>
+
+                <button
+                  style={{
+                    height: 40,
+                    minWidth: 90,
+                    borderRadius: 12,
+                    border: "1px solid #444",
+                    background: "#111",
+                    color: "#fff",
+                    fontWeight: 800,
+                  }}
+                  onClick={() => removeItem(idx)}
+                >
+                  Eliminar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Barra inferior fija */}
+      <div
+        style={{
+          position: "fixed",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "#0b0b0b",
+          borderTop: "1px solid #222",
+          padding: 12,
+          width: "100%",
+          boxSizing: "border-box",
+          overflowX: "hidden",
+        }}
+      >
+        <div style={{ maxWidth: 520, margin: "0 auto", display: "grid", gap: 10, color: "#fff" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900 }}>
+            <span>Total</span>
+            <span>${total.toFixed(2)}</span>
+          </div>
+
+          <input
+            ref={paymentRef}
+            inputMode="decimal"
+            placeholder="Pago inicial (opcional)"
+            style={{
+              width: "100%",
+              height: 48,
+              fontSize: 16,
+              borderRadius: 12,
+              border: "1px solid #333",
+              background: "#1b1b1b",
+              color: "#fff",
+              padding: "0 12px",
+              outline: "none",
+            }}
+            value={payment}
+            onChange={(e) => setPayment(e.target.value)}
+          />
+
+          <button
+            style={{
+              width: "100%",
+              height: 54,
+              fontSize: 16,
+              fontWeight: 900,
+              background: "#111",
+              color: "#fff",
+              borderRadius: 12,
+              border: "1px solid #333",
+            }}
+            onClick={submitSale}
+          >
+            CONFIRMAR VENTA
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export default function App() {
+  const [screen, setScreen] = useState("sale"); // sale | client
+  const [clients, setClients] = useState([]);
+  const [products, setProducts] = useState([]);
+
+  // Toast state
+  const [toasts, setToasts] = useState([]);
+
+  const removeToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
+
+  const pushToast = (message, type = "info", ms = 2200) => {
+    const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    setToasts((prev) => [...prev, { id, message, type }]);
+    window.setTimeout(() => removeToast(id), ms);
+  };
+  // Evitar scroll horizontal (Safari iOS / overflow)
+  useEffect(() => {
+    const prevHtml = document.documentElement.style.overflowX;
+    const prevBody = document.body.style.overflowX;
+
+    document.documentElement.style.overflowX = "hidden";
+    document.body.style.overflowX = "hidden";
+
+    return () => {
+      document.documentElement.style.overflowX = prevHtml;
+      document.body.style.overflowX = prevBody;
+    };
+  }, []);
+
+  useEffect(() => {
+      // iOS Safari a veces queda con offset al cambiar pantallas
+      try {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollLeft = 0;
+        document.body.scrollLeft = 0;
+      } catch {}
+    }, [screen]);
+  
+  useEffect(() => {
+      const prevBgHtml = document.documentElement.style.background;
+      const prevBgBody = document.body.style.background;
+      const prevMargin = document.body.style.margin;
+
+      document.documentElement.style.background = "#0f0f0f";
+      document.body.style.background = "#0f0f0f";
+      document.body.style.margin = "0";
+
+      return () => {
+        document.documentElement.style.background = prevBgHtml;
+        document.body.style.background = prevBgBody;
+        document.body.style.margin = prevMargin;
+      };
+    }, []);
+
+  useEffect(() => {
+    fetch(`${API}/clients`).then((r) => r.json()).then(setClients);
+    fetch(`${API}/products`).then((r) => r.json()).then(setProducts);
+  }, []);
+
+  return (
+    <>
+      <ToastHost toasts={toasts} removeToast={removeToast} />
+
+      <div
+        style={{
+          maxWidth: 520,
+          margin: "0 auto",
+          padding: 16,
+          paddingBottom: 220,
+          background: "#0f0f0f",
+          minHeight: "100vh",
+          color: "#fff",
+          width: "100%",
+          boxSizing: "border-box",
+          overflowX: "hidden",
+        }}
+      >
+        <TopTabs screen={screen} setScreen={setScreen} />
+
+        {screen === "sale" ? (
+          <NewSaleScreen clients={clients} products={products} pushToast={pushToast} />
+        ) : (
+          <ClientScreen clients={clients} pushToast={pushToast} />
+        )}
+      </div>
+    </>
+  );
+}

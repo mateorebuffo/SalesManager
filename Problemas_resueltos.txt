@@ -1,0 +1,51 @@
+================================================================================
+PROBLEMAS RESUELTOS - Sistema de Ventas
+================================================================================
+
+--------------------------------------------------------------------------------
+PROBLEMA 1: Login fallaba con "No se pudo conectar al servidor"
+Fecha: 2026-03-18
+--------------------------------------------------------------------------------
+
+SÍNTOMA:
+  Al intentar ingresar con usuario y contraseña, la pantalla de login
+  mostraba el error "No se pudo conectar al servidor".
+  En la consola del browser (F12) aparecía:
+    POST http://192.168.0.104:8000/auth/token net::ERR_CONNECTION_TIMED_OUT
+
+  Esto ocurría aunque el servidor estaba corriendo correctamente y la página
+  se abría desde http://192.168.0.105:5173 (la IP correcta de la PC).
+
+CAUSA:
+  Existía un archivo ventas-front/.env con esta línea:
+    VITE_API_URL=http://192.168.0.104:8000
+
+  Vite lee ese archivo al iniciar el servidor de desarrollo y reemplaza
+  import.meta.env.VITE_API_URL con ese valor en el código del frontend.
+  Por eso, aunque la página se cargaba desde la IP 192.168.0.105, todas
+  las llamadas al backend apuntaban a la IP vieja (192.168.0.104), que
+  ya no correspondía a ningún dispositivo activo en la red.
+
+  Nota: la IP de la PC había cambiado de 192.168.0.104 a 192.168.0.105
+  porque el router asigna IPs dinámicamente (DHCP). El archivo .env
+  había quedado con la IP anterior.
+
+SOLUCIÓN:
+  Se comentó la línea en ventas-front/.env:
+    # VITE_API_URL=https://tu-backend.railway.app  ← solo para producción
+
+  Al no tener VITE_API_URL definida, el frontend vuelve al comportamiento
+  por defecto: usa window.location.hostname (la IP con la que se abre
+  la página en el browser) para construir la URL del backend.
+  Así funciona sin importar qué IP tenga la PC en la red local.
+
+  Se reinició el servidor de Vite para que tomara el cambio.
+
+RECOMENDACIÓN PARA EVITARLO EN EL FUTURO:
+  - No poner IPs locales hardcodeadas en ventas-front/.env durante desarrollo.
+  - VITE_API_URL solo debe setearse cuando se despliega en producción
+    (Railway, Netlify, etc.), con la URL pública del backend.
+  - Para estabilizar la IP local de la PC, configurar una reserva DHCP
+    por dirección MAC en el panel del router (generalmente en 192.168.0.1).
+
+================================================================================

@@ -1,0 +1,51 @@
+# Variables de entorno — NUNCA commitear
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Virtualenv
+venv/
+.venv/
+env/
+
+# Logs
+*.log
+
+# Frontend
+ventas-front/node_modules/
+ventas-front/dist/
+ventas-front/.env
+ventas-front/.env.*
+!ventas-front/.env.example
+
+# Claude Code
+.claude/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
