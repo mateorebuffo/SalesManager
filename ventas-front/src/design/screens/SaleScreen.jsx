@@ -71,9 +71,8 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
     });
   };
   const setQty = (productId, val) => {
-    const n = Math.max(0, parseInt(val) || 0);
-    if (n === 0) setCart(c => c.filter(x => x.productId !== productId));
-    else setCart(c => c.map(x => x.productId === productId ? { ...x, q: n } : x));
+    const n = Math.max(1, parseInt(val) || 1);
+    setCart(c => c.map(x => x.productId === productId ? { ...x, q: n } : x));
   };
   const setPrice = (productId, val) =>
     setCart(c => c.map(x => x.productId === productId ? { ...x, price: val } : x));
