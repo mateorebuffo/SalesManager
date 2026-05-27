@@ -108,7 +108,6 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
           ? null
           : (PAYMENT_METHODS.find(m => m.id === payMethod)?.label ?? null),
       };
-      console.log('POST /sales payload:', JSON.stringify(payload, null, 2));
       const url = force ? `${apiBase}/sales?force=true` : `${apiBase}/sales`;
       const res = await apiFetch(url, {
         method: 'POST',

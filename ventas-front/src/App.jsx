@@ -352,12 +352,22 @@ function formatArDate(iso) {
 }
 
 /** Pantalla: Cliente (Saldo + acciones) */
+const PAY_METHODS_EDIT = [
+  { id: "cash",     label: "Efectivo"         },
+  { id: "transfer", label: "Transferencia"    },
+  { id: "crypto",   label: "Cripto"           },
+  { id: "credit",   label: "Cuenta corriente" },
+];
+
 function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saleDate, setSaleDate] = useState("");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState([]);
+  const [clientId, setClientId] = useState(null);
+  const [payMethod, setPayMethod] = useState("credit");
+  const [payAmount, setPayAmount] = useState("");
 
   // Campos para agregar item
   const [productQuery, setProductQuery] = useState("");
@@ -371,13 +381,13 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
     apiFetch(`${API}/sales/${saleId}`)
       .then((r) => r.json())
       .then((data) => {
-        // sale_date como "YYYY-MM-DDTHH:mm" para datetime-local input
         const dt = new Date(data.sale_date);
         const pad = (n) => String(n).padStart(2, "0");
         setSaleDate(
           `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`
         );
         setNotes(data.notes || "");
+        setClientId(data.client_id);
         setItems(
           data.items.map((it) => ({
             product_id: it.product_id,
@@ -387,6 +397,10 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
             notes: it.notes || "",
           }))
         );
+        // Detectar método actual: si pagado > 0 → efectivo (approx); si no → CC
+        const paid = Number(data.paid ?? 0);
+        setPayMethod(paid > 0 ? "cash" : "credit");
+        setPayAmount(paid > 0 ? String(paid.toFixed(2)) : "");
         setLoading(false);
       })
       .catch(() => {
@@ -415,8 +429,16 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
 
   const submit = async (force = false) => {
     if (items.length === 0) { pushToast("Agregá al menos un producto.", "error"); return; }
+    const newTotal = items.reduce((s, it) => s + Number(it.quantity) * Number(it.unit_price), 0);
+    let amt = null;
+    if (payMethod !== "credit") {
+      amt = Number(payAmount);
+      if (!Number.isFinite(amt) || amt <= 0) { pushToast("Ingresá un monto válido.", "error"); return; }
+      if (amt > newTotal + 0.001) { pushToast(`El monto no puede superar el total ($${newTotal.toFixed(2)}).`, "error"); return; }
+    }
     setSaving(true);
     try {
+      // 1) Actualizar items de la venta
       const res = await apiFetch(`${API}/sales/${saleId}${force ? "?force=true" : ""}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -434,7 +456,6 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         if (res.status === 409 && err.detail?.code === "STOCK_INSUFFICIENT") {
-          // Para simplificar: guardar con force directamente tras confirmar
           if (window.confirm("Stock insuficiente para algunos productos. ¿Guardar igual?")) {
             setSaving(false);
             submit(true);
@@ -445,6 +466,36 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
         }
         throw new Error(err.detail || "Error guardando venta");
       }
+
+      // 2) Resetear pagos vinculados a esta venta
+      if (clientId) {
+        const paymentsRes = await apiFetch(`${API}/clients/${clientId}/payments`);
+        if (paymentsRes.ok) {
+          const allPayments = await paymentsRes.json();
+          const salePayments = allPayments.filter((p) => p.sale_id === saleId);
+          await Promise.all(
+            salePayments.map((p) =>
+              apiFetch(`${API}/clients/${clientId}/payments/${p.payment_id}`, { method: "DELETE" })
+            )
+          );
+        }
+
+        // 3) Crear nuevo pago si no es cuenta corriente
+        if (payMethod !== "credit" && amt !== null) {
+          const isPartial = amt < newTotal - 0.001;
+          const methodLabel = PAY_METHODS_EDIT.find((m) => m.id === payMethod)?.label ?? payMethod;
+          await apiFetch(`${API}/sales/${saleId}/payments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              amount: amt,
+              payment_date: new Date().toISOString(),
+              notes: `${isPartial ? "Pago parcial" : "Pago completo"} Venta #${saleId} ${methodLabel}`,
+            }),
+          });
+        }
+      }
+
       pushToast("Venta actualizada ✅", "success");
       onSaved();
       onClose();
@@ -506,6 +557,46 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
             <div style={{ display: "grid", gap: 6 }}>
               <label style={{ fontSize: 13, color: "#6E7A98" }}>Notas (opcional)</label>
               <input placeholder="Notas de la venta" value={notes} onChange={(e) => setNotes(e.target.value)} style={inputStyle} />
+            </div>
+
+            {/* Forma de pago */}
+            <div style={{ display: "grid", gap: 6 }}>
+              <label style={{ fontSize: 13, color: "#6E7A98" }}>Forma de pago</label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {PAY_METHODS_EDIT.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => {
+                      if (m.id !== "credit" && payMethod === "credit") {
+                        setPayAmount(total.toFixed(2));
+                      }
+                      setPayMethod(m.id);
+                    }}
+                    style={{
+                      height: 42, borderRadius: 10, border: "none", cursor: "pointer",
+                      background: payMethod === m.id ? "#5C82FF" : "#0A1124",
+                      color: payMethod === m.id ? "#fff" : "#6E7A98",
+                      fontWeight: payMethod === m.id ? 700 : 500, fontSize: 14,
+                      outline: payMethod === m.id ? "none" : "1px solid #1F2A4A",
+                    }}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              {payMethod !== "credit" && (
+                <div style={{ display: "grid", gap: 6, marginTop: 4 }}>
+                  <label style={{ fontSize: 13, color: "#6E7A98" }}>Monto pagado (total: ${total.toFixed(2)})</label>
+                  <input
+                    inputMode="decimal"
+                    placeholder={`0.00`}
+                    value={payAmount}
+                    onChange={(e) => setPayAmount(e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Items actuales */}

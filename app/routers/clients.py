@@ -227,6 +227,14 @@ def update_client_payment(client_id: int, payment_id: int, payload: ClientPaymen
     return {"payment_id": payment.id, "amount": str(payment.amount), "payment_date": payment.payment_date}
 
 
+@router.delete("/{client_id}/payments/{payment_id}", status_code=204)
+def delete_client_payment(client_id: int, payment_id: int, db: Session = Depends(get_db)):
+    payment = db.query(Payment).filter(Payment.id == payment_id, Payment.client_id == client_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Pago no existe.")
+    db.delete(payment)
+    db.commit()
+
 @router.get("/debtors", response_model=list[ClientDebtRow])
 def list_debtors(db: Session = Depends(get_db)):
     # Total entregado por cliente (sum items * price)
