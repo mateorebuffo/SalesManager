@@ -4,9 +4,9 @@
 // Drop-in replacement for the legacy NavBar in App.jsx.
 
 import { useIsDesktop, Avatar } from './primitives';
-import { FONT_UI, FONT_MONO } from './tokens';
+import { FONT_UI } from './tokens';
 import {
-  Cart, Pkg, Users, Cash, Bell, Search, Logout, Receipt, Edit,
+  Cart, Pkg, Users, Cash, Bell, Logout, Receipt, Edit,
 } from './Icons';
 
 // One source of truth for the navigation items. `key` lines up with the
@@ -106,25 +106,9 @@ function DesktopTopBar({ theme }) {
   return (
     <div style={{
       height: 60, borderBottom: `1px solid ${theme.border}`, background: theme.surface,
-      padding: '0 24px', display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0,
+      padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+      gap: 16, flexShrink: 0,
     }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        background: theme.surfaceSunk, border: `1px solid ${theme.border}`,
-        borderRadius: 10, padding: '8px 14px', width: 360,
-      }}>
-        <Search size={18} style={{ color: theme.text3 }} />
-        <input placeholder="Buscar producto, cliente o venta…" style={{
-          background: 'transparent', border: 'none', outline: 'none',
-          color: theme.text, fontSize: 14, fontFamily: FONT_UI, flex: 1,
-        }} />
-        <span style={{
-          fontSize: 11, color: theme.text3, fontFamily: FONT_MONO,
-          background: theme.surface, padding: '2px 6px', borderRadius: 5,
-          border: `1px solid ${theme.border}`,
-        }}>⌘K</span>
-      </div>
-      <div style={{ flex: 1 }} />
       <button style={{
         width: 40, height: 40, borderRadius: 12, background: theme.surfaceSunk,
         border: `1px solid ${theme.border}`, color: theme.text2, position: 'relative',

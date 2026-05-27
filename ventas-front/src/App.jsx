@@ -2207,6 +2207,7 @@ function StockScreen({ products, pushToast }) {
   const [expandedEntry, setExpandedEntry] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
+  const [stockQuery, setStockQuery] = useState("");
 
   const [formDate, setFormDate] = useState("");
   const [formNotes, setFormNotes] = useState("");
@@ -2519,7 +2520,20 @@ function StockScreen({ products, pushToast }) {
         currentStock.length === 0 ? (
           <div style={{ color: "#7777a0" }}>Sin datos de stock. Cargá un ingreso primero.</div>
         ) : (
-          currentStock.map((s) => (
+          <>
+            <input
+              placeholder="Buscar producto..."
+              value={stockQuery}
+              onChange={(e) => setStockQuery(e.target.value)}
+              style={{
+                width: "100%", height: 44, fontSize: 15, borderRadius: 10,
+                border: "1px solid rgba(255,255,255,0.08)", background: "#13131e", color: "#fff",
+                padding: "0 12px", outline: "none", boxSizing: "border-box",
+              }}
+            />
+          {currentStock.filter(s =>
+            !stockQuery.trim() || s.product_name.toLowerCase().includes(stockQuery.trim().toLowerCase())
+          ).map((s) => (
             <div
               key={s.product_id}
               style={{
@@ -2539,7 +2553,8 @@ function StockScreen({ products, pushToast }) {
                 </span>
               </div>
             </div>
-          ))
+          ))}
+          </>
         )
       ) : (
         entries.length === 0 ? (
