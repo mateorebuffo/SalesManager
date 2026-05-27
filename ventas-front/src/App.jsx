@@ -20,6 +20,11 @@ const API = import.meta.env.VITE_API_URL ?? `http://${window.location.hostname}:
  */
 let _onUnauthorized = null;
 
+const localToday = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+
 /** Decodifica el payload del JWT (sin verificar firma — solo para UI). */
 function parseToken(token) {
   try {
@@ -632,7 +637,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
   // UI pago general
   const [payAmount, setPayAmount] = useState("");
   const [payNotes, setPayNotes] = useState("");
-  const [payDate, setPayDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [payDate, setPayDate] = useState(() => localToday());
   const [paySubmitting, setPaySubmitting] = useState(false);
 
   // Edición inline de pagos
@@ -837,7 +842,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
 
       setPayAmount("");
       setPayNotes("");
-      setPayDate(new Date().toISOString().slice(0, 10));
+      setPayDate(localToday());
 
       // refresco saldo (statement)
       const st = await fetchStatement(selectedClient.id);
@@ -1219,7 +1224,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                   type="date"
                   lang="en-GB"
                   value={payDate}
-                  max={new Date().toISOString().slice(0, 10)}
+                  max={localToday()}
                   onChange={(e) => setPayDate(e.target.value)}
                   style={{ height: 40, fontSize: 14, borderRadius: 10, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 10px", outline: "none", cursor: "pointer", fontFamily: "inherit" }}
                 />
@@ -3332,5 +3337,6 @@ function AppShell({ onLogout, currentUser }) {
     </>
   );
 }
+
 
 

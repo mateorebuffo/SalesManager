@@ -20,6 +20,11 @@ import {
 
 const ICONS_BY_PAY = { cash: Cash, transfer: Transfer, crypto: Crypto, credit: Clock };
 
+const localToday = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+
 export default function SaleScreen({ theme, clients = [], products = [], pushToast, apiBase, apiFetch }) {
   const desktop = useIsDesktop();
   const [client, setClient] = useState(null);   // null = mostrador
@@ -27,7 +32,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
   const [payMethod, setPayMethod] = useState('cash');
   const [parcial, setParcial] = useState(false);
   const [parcialAmount, setParcialAmount] = useState('');
-  const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [saleDate, setSaleDate] = useState(() => localToday());
   const [sheet, setSheet] = useState(null);      // 'client' | 'product' | null
   const [query, setQuery] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -50,14 +55,19 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
     return Number(p?.cost_price ?? 0);
   };
 
-  const total = lines.reduce((s, l) => s + priceFor(l.p) * l.q, 0);
+  const linePrice = (l) => {
+    const n = Number(l.price);
+    return Number.isFinite(n) && n >= 0 ? n : priceFor(l.p);
+  };
+
+  const total = lines.reduce((s, l) => s + linePrice(l) * l.q, 0);
   const count = lines.reduce((s, l) => s + l.q, 0);
 
   const addProduct = (p) => {
     setCart(prev => {
       const i = prev.find(x => x.productId === p.id);
       if (i) return prev.map(x => x.productId === p.id ? { ...x, q: x.q + 1 } : x);
-      return [...prev, { productId: p.id, q: 1 }];
+      return [...prev, { productId: p.id, q: 1, price: String(priceFor(p)) }];
     });
   };
   const setQty = (productId, val) => {
@@ -65,6 +75,8 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
     if (n === 0) setCart(c => c.filter(x => x.productId !== productId));
     else setCart(c => c.map(x => x.productId === productId ? { ...x, q: n } : x));
   };
+  const setPrice = (productId, val) =>
+    setCart(c => c.map(x => x.productId === productId ? { ...x, price: val } : x));
   const removeLine = (productId) =>
     setCart(c => c.filter(x => x.productId !== productId));
 
@@ -83,7 +95,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
         items: lines.map(l => ({
           product_id: l.p.id,
           quantity: l.q,
-          unit_price: priceFor(l.p),
+          unit_price: linePrice(l),
           notes: null,
         })),
         initial_payment_amount: payMethod === 'credit'
@@ -125,7 +137,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
       setPayMethod('cash');
       setParcial(false);
       setParcialAmount('');
-      setSaleDate(new Date().toISOString().slice(0, 10));
+      setSaleDate(localToday());
     } catch (e) {
       pushToast?.('error', e.message || 'No se pudo registrar la venta');
     } finally {
@@ -160,7 +172,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
               type="date"
               lang="en-GB"
               value={saleDate}
-              max={new Date().toISOString().slice(0, 10)}
+              max={localToday()}
               onChange={e => setSaleDate(e.target.value)}
               style={{
                 background: theme.surfaceSunk, border: `1px solid ${theme.border}`,
@@ -217,11 +229,24 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 14.5, color: theme.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.p.name}</div>
-                  <div style={{ fontSize: 12, color: theme.text3, fontFamily: FONT_MONO, marginTop: 2 }}>{money(priceFor(l.p))} c/u</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginTop: 3 }}>
+                    <span style={{ fontSize: 12, color: theme.text3, fontFamily: FONT_MONO }}>$</span>
+                    <input
+                      inputMode="decimal"
+                      value={l.price}
+                      onChange={(e) => setPrice(l.productId, e.target.value)}
+                      style={{
+                        width: 72, background: 'transparent', border: 'none',
+                        borderBottom: `1px solid ${theme.border}`, color: theme.text2,
+                        fontSize: 12, fontFamily: FONT_MONO, outline: 'none', padding: '1px 2px',
+                      }}
+                    />
+                    <span style={{ fontSize: 12, color: theme.text3, fontFamily: FONT_MONO }}>c/u</span>
+                  </div>
                 </div>
                 <QtyInput theme={theme} value={l.q} onChange={(v) => setQty(l.productId, v)} />
                 <div style={{ fontFamily: FONT_MONO, fontWeight: 600, fontSize: 14.5, color: theme.text, width: 76, textAlign: 'right' }}>
-                  {money(priceFor(l.p) * l.q)}
+                  {money(linePrice(l) * l.q)}
                 </div>
                 <button onClick={() => removeLine(l.productId)} style={{
                   width: 28, height: 28, borderRadius: 14,
