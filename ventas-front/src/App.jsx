@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { themes } from "./design/tokens";
 import "./design/styles.css";
 import { AppShell as NewShell } from "./design/AppShell";
@@ -86,8 +86,8 @@ function ToastHost({ toasts, removeToast }) {
           style={{
             width: "min(520px, 100%)",
             borderRadius: 14,
-            border: "1px solid rgba(255,255,255,0.07)",
-            background: "#09091a",
+            border: "1px solid #1F2A4A",
+            background: "#0A1124",
             color: "#fff",
             padding: "12px 12px",
             boxShadow: "0 8px 30px rgba(0,0,0,.5)",
@@ -98,7 +98,7 @@ function ToastHost({ toasts, removeToast }) {
           }}
         >
           <div style={{ display: "grid", gap: 4 }}>
-            <div style={{ fontWeight: 900, fontSize: 13, color: "#8888a8" }}>
+            <div style={{ fontWeight: 900, fontSize: 13, color: "#6E7A98" }}>
               {t.type === "success" ? "OK" : t.type === "error" ? "Error" : "Info"}
             </div>
             <div style={{ fontWeight: 800 }}>{t.message}</div>
@@ -111,8 +111,8 @@ function ToastHost({ toasts, removeToast }) {
               height: 36,
               minWidth: 40,
               borderRadius: 10,
-              border: "1px solid rgba(255,255,255,0.08)",
-              background: "#0f0f19",
+              border: "1px solid #1F2A4A",
+              background: "#0A1124",
               color: "#fff",
               fontWeight: 900,
             }}
@@ -179,14 +179,14 @@ function SearchDropdown({
       {selected ? (
         <div
           style={{
-            border: "1px solid rgba(255,255,255,0.08)",
+            border: "1px solid #1F2A4A",
             borderRadius: 12,
             padding: 12,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             gap: 10,
-            background: "#13131e",
+            background: "#121A33",
             color: "#fff",
           }}
         >
@@ -198,8 +198,8 @@ function SearchDropdown({
               height: 44,
               minWidth: 110,
               borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.11)",
-              background: "#0f0f19",
+              border: "1px solid #2B3960",
+              background: "#0A1124",
               color: "#fff",
               fontWeight: 800,
             }}
@@ -237,8 +237,8 @@ function SearchDropdown({
                 height: 48,
                 fontSize: 16,
                 borderRadius: 12,
-                border: "1px solid rgba(255,255,255,0.08)",
-                background: "#13131e",
+                border: "1px solid #1F2A4A",
+                background: "#121A33",
                 color: "#fff",
                 padding: "0 12px",
                 outline: "none",
@@ -254,9 +254,9 @@ function SearchDropdown({
                   width: 48,
                   height: 48,
                   borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  background: "#13131e",
-                  color: "#818cf8",
+                  border: "1px solid #1F2A4A",
+                  background: "#121A33",
+                  color: "#5C82FF",
                   fontSize: 24,
                   fontWeight: 300,
                   flexShrink: 0,
@@ -279,9 +279,9 @@ function SearchDropdown({
                 right: 0,
                 top: 54,
                 zIndex: 50,
-                border: "1px solid rgba(255,255,255,0.08)",
+                border: "1px solid #1F2A4A",
                 borderRadius: 12,
-                background: "#0f0f19",
+                background: "#0A1124",
                 overflow: "hidden",
                 maxHeight: 280,
                 overflowY: "auto",
@@ -290,7 +290,7 @@ function SearchDropdown({
               }}
             >
               {filtered.length === 0 ? (
-                <div style={{ padding: 12, color: "#8888a8" }}>Sin resultados</div>
+                <div style={{ padding: 12, color: "#6E7A98" }}>Sin resultados</div>
               ) : (
                 filtered.map((it) => (
                   <button
@@ -452,7 +452,7 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
 
   const inputStyle = {
     height: 44, fontSize: 15, borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.08)", background: "#13131e",
+    border: "1px solid #1F2A4A", background: "#121A33",
     color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box", width: "100%",
   };
 
@@ -473,8 +473,8 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
     >
       <div
         style={{
-          width: "100%", maxWidth: 480, background: "#13131e",
-          borderRadius: 18, border: "1px solid rgba(255,255,255,0.08)",
+          width: "100%", maxWidth: 480, background: "#121A33",
+          borderRadius: 18, border: "1px solid #1F2A4A",
           boxShadow: "0 8px 40px rgba(0,0,0,0.6)", padding: 20,
           display: "grid", gap: 14, marginTop: 16,
         }}
@@ -482,34 +482,34 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ fontWeight: 900, fontSize: 17 }}>Editar venta #{saleId}</div>
           <button type="button" onClick={onClose}
-            style={{ background: "transparent", border: "none", color: "#8888a8", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>
+            style={{ background: "transparent", border: "none", color: "#6E7A98", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>
             ✕
           </button>
         </div>
 
         {loading ? (
-          <div style={{ color: "#7777a0" }}>Cargando...</div>
+          <div style={{ color: "#6E7A98" }}>Cargando...</div>
         ) : (
           <>
             {/* Fecha */}
             <div style={{ display: "grid", gap: 6 }}>
-              <label style={{ fontSize: 13, color: "#8888a8" }}>Fecha</label>
+              <label style={{ fontSize: 13, color: "#6E7A98" }}>Fecha</label>
               <input type="datetime-local" value={saleDate} onChange={(e) => setSaleDate(e.target.value)} style={inputStyle} />
             </div>
 
             {/* Notas */}
             <div style={{ display: "grid", gap: 6 }}>
-              <label style={{ fontSize: 13, color: "#8888a8" }}>Notas (opcional)</label>
+              <label style={{ fontSize: 13, color: "#6E7A98" }}>Notas (opcional)</label>
               <input placeholder="Notas de la venta" value={notes} onChange={(e) => setNotes(e.target.value)} style={inputStyle} />
             </div>
 
             {/* Items actuales */}
             <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontSize: 13, color: "#8888a8" }}>Productos</div>
+              <div style={{ fontSize: 13, color: "#6E7A98" }}>Productos</div>
               {items.map((it, idx) => (
                 <div key={idx} style={{
-                  background: "#0f0f19", borderRadius: 10, padding: "10px 12px",
-                  border: "1px solid rgba(255,255,255,0.07)", display: "grid", gap: 6,
+                  background: "#0A1124", borderRadius: 10, padding: "10px 12px",
+                  border: "1px solid #1F2A4A", display: "grid", gap: 6,
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontWeight: 800 }}>{it.name}</span>
@@ -520,7 +520,7 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 8 }}>
                     <div>
-                      <label style={{ fontSize: 11, color: "#8888a8" }}>Cantidad</label>
+                      <label style={{ fontSize: 11, color: "#6E7A98" }}>Cantidad</label>
                       <input
                         inputMode="decimal"
                         value={it.quantity}
@@ -529,7 +529,7 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: 11, color: "#8888a8" }}>Precio unit.</label>
+                      <label style={{ fontSize: 11, color: "#6E7A98" }}>Precio unit.</label>
                       <input
                         inputMode="decimal"
                         value={it.unit_price}
@@ -550,10 +550,10 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
 
             {/* Agregar item */}
             <div style={{
-              background: "#0f0f19", borderRadius: 12, padding: 12,
+              background: "#0A1124", borderRadius: 12, padding: 12,
               border: "1px solid rgba(255,255,255,0.06)", display: "grid", gap: 8,
             }}>
-              <div style={{ fontSize: 13, color: "#8888a8" }}>Agregar producto</div>
+              <div style={{ fontSize: 13, color: "#6E7A98" }}>Agregar producto</div>
               <SearchDropdown
                 inputRef={productRef}
                 label=""
@@ -576,8 +576,8 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
                 onChange={(e) => setItemNotes(e.target.value)} style={{ ...inputStyle, height: 38, fontSize: 13 }} />
               <button type="button" onClick={addItem}
                 style={{
-                  height: 42, borderRadius: 10, border: "1px solid rgba(255,255,255,0.08)",
-                  background: "#1a1a2e", color: "#818cf8", fontWeight: 900, cursor: "pointer",
+                  height: 42, borderRadius: 10, border: "1px solid #1F2A4A",
+                  background: "#1a1a2e", color: "#5C82FF", fontWeight: 900, cursor: "pointer",
                 }}>
                 + Agregar
               </button>
@@ -593,7 +593,7 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
             <button type="button" disabled={saving} onClick={() => submit(false)}
               style={{
                 height: 50, borderRadius: 12, border: "none",
-                background: saving ? "#3b3b8a" : "#6366f1", color: "#fff",
+                background: saving ? "#3b3b8a" : "#5C82FF", color: "#fff",
                 fontWeight: 900, fontSize: 16, cursor: saving ? "not-allowed" : "pointer",
                 opacity: saving ? 0.7 : 1,
               }}>
@@ -975,8 +975,8 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
     width: "100%",
     height: 48,
     borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: "#0f0f19",
+    border: "1px solid #1F2A4A",
+    background: "#0A1124",
     color: "#fff",
     fontWeight: 900,
     marginTop: 10,
@@ -1024,8 +1024,8 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
       {showNewClient && (
         <div
           style={{
-            border: "1px solid rgba(255,255,255,0.05)",
-            background: "#0f0f19",
+            border: "1px solid #1F2A4A",
+            background: "#0A1124",
             borderRadius: 14,
             padding: 14,
             display: "grid",
@@ -1043,8 +1043,8 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
               height: 48,
               fontSize: 16,
               borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.08)",
-              background: "#13131e",
+              border: "1px solid #1F2A4A",
+              background: "#121A33",
               color: "#fff",
               padding: "0 12px",
               outline: "none",
@@ -1062,8 +1062,8 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
               height: 48,
               fontSize: 16,
               borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.08)",
-              background: "#13131e",
+              border: "1px solid #1F2A4A",
+              background: "#121A33",
               color: "#fff",
               padding: "0 12px",
               outline: "none",
@@ -1081,8 +1081,8 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                 width: "100%",
                 height: 48,
                 borderRadius: 12,
-                border: "1px solid rgba(255,255,255,0.08)",
-                background: "#13131e",
+                border: "1px solid #1F2A4A",
+                background: "#121A33",
                 color: "#fff",
                 padding: "0 12px",
                 outline: "none",
@@ -1102,8 +1102,8 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
             style={{
               height: 52,
               borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.08)",
-              background: ncSubmitting ? "#09091a" : "#0f0f19",
+              border: "1px solid #1F2A4A",
+              background: ncSubmitting ? "#0A1124" : "#0A1124",
               color: "#fff",
               fontWeight: 900,
               fontSize: 16,
@@ -1116,9 +1116,9 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
       )}
 
       {!selectedClient ? (
-        <div style={{ color: "#7777a0" }}>Elegí un cliente para ver su cuenta corriente.</div>
+        <div style={{ color: "#6E7A98" }}>Elegí un cliente para ver su cuenta corriente.</div>
       ) : loading ? (
-        <div style={{ color: "#7777a0" }}>Cargando...</div>
+        <div style={{ color: "#6E7A98" }}>Cargando...</div>
       ) : error ? (
         <div style={{ color: "#f87171" }}>{error}</div>
       ) : statement ? (
@@ -1126,14 +1126,14 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
           {/* Resumen */}
           <div
             style={{
-              border: "1px solid rgba(255,255,255,0.05)",
-              background: "#0f0f19",
+              border: "1px solid #1F2A4A",
+              background: "#0A1124",
               borderRadius: 14,
               padding: 14,
               boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
             }}
           >
-            <div style={{ color: "#8888a8", fontSize: 12 }}>Saldo total</div>
+            <div style={{ color: "#6E7A98", fontSize: 12 }}>Saldo total</div>
             <div style={{ fontWeight: 900, fontSize: 22 }}>
               ${Number(statement.total_balance || 0).toFixed(2)}
             </div>
@@ -1142,8 +1142,8 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
           {/* Registrar pago (siempre visible) */}
           <div
             style={{
-              border: "1px solid rgba(255,255,255,0.05)",
-              background: "#0f0f19",
+              border: "1px solid #1F2A4A",
+              background: "#0A1124",
               borderRadius: 14,
               padding: 14,
               display: "grid",
@@ -1151,7 +1151,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
               boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
             }}
           >
-            <div style={{ fontWeight: 900, fontSize: 13, color: "#8888a8", letterSpacing: 1, textTransform: "uppercase" }}>
+            <div style={{ fontWeight: 900, fontSize: 13, color: "#6E7A98", letterSpacing: 1, textTransform: "uppercase" }}>
               Registrar pago
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
@@ -1162,8 +1162,8 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                   height: 48,
                   fontSize: 16,
                   borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  background: "#13131e",
+                  border: "1px solid #1F2A4A",
+                  background: "#121A33",
                   color: "#fff",
                   padding: "0 12px",
                   outline: "none",
@@ -1179,8 +1179,8 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                   height: 48,
                   fontSize: 16,
                   borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  background: "#13131e",
+                  border: "1px solid #1F2A4A",
+                  background: "#121A33",
                   color: "#fff",
                   padding: "0 12px",
                   outline: "none",
@@ -1198,7 +1198,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                 height: 48,
                 borderRadius: 12,
                 border: "none",
-                background: paySubmitting ? "#3b3b8a" : "#6366f1",
+                background: paySubmitting ? "#3b3b8a" : "#5C82FF",
                 color: "#fff",
                 fontWeight: 900,
                 fontSize: 15,
@@ -1218,9 +1218,9 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
               style={{
                 height: 40,
                 borderRadius: 10,
-                border: clientView === "deliveries" ? "1px solid #6366f1" : "1px solid rgba(255,255,255,0.08)",
-                background: clientView === "deliveries" ? "rgba(99,102,241,0.15)" : "#0f0f19",
-                color: clientView === "deliveries" ? "#818cf8" : "#8888a8",
+                border: clientView === "deliveries" ? "1px solid #5C82FF" : "1px solid #1F2A4A",
+                background: clientView === "deliveries" ? "#1A2453" : "#0A1124",
+                color: clientView === "deliveries" ? "#5C82FF" : "#6E7A98",
                 fontWeight: 900,
                 fontSize: 14,
                 cursor: "pointer",
@@ -1234,9 +1234,9 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
               style={{
                 height: 40,
                 borderRadius: 10,
-                border: clientView === "payments" ? "1px solid #6366f1" : "1px solid rgba(255,255,255,0.08)",
-                background: clientView === "payments" ? "rgba(99,102,241,0.15)" : "#0f0f19",
-                color: clientView === "payments" ? "#818cf8" : "#8888a8",
+                border: clientView === "payments" ? "1px solid #5C82FF" : "1px solid #1F2A4A",
+                background: clientView === "payments" ? "#1A2453" : "#0A1124",
+                color: clientView === "payments" ? "#5C82FF" : "#6E7A98",
                 fontWeight: 900,
                 fontSize: 14,
                 cursor: "pointer",
@@ -1254,8 +1254,8 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
               onClick={() => copyToClipboard(buildDeliveriesText())}
               style={{
                 width: "100%", height: 44, borderRadius: 10,
-                border: "1px solid rgba(255,255,255,0.08)",
-                background: "#0f0f19", color: "#fff", fontWeight: 900, fontSize: 14, cursor: "pointer",
+                border: "1px solid #1F2A4A",
+                background: "#0A1124", color: "#fff", fontWeight: 900, fontSize: 14, cursor: "pointer",
               }}
             >
               Exportar entregas
@@ -1267,8 +1267,8 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
               onClick={() => copyToClipboard(buildPaymentsText())}
               style={{
                 width: "100%", height: 44, borderRadius: 10,
-                border: "1px solid rgba(255,255,255,0.08)",
-                background: "#0f0f19", color: "#fff", fontWeight: 900, fontSize: 14, cursor: "pointer",
+                border: "1px solid #1F2A4A",
+                background: "#0A1124", color: "#fff", fontWeight: 900, fontSize: 14, cursor: "pointer",
               }}
             >
               Exportar pagos
@@ -1279,8 +1279,8 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
           {clientView === "deliveries" ? (
             <div
               style={{
-                border: "1px solid rgba(255,255,255,0.05)",
-                background: "#0f0f19",
+                border: "1px solid #1F2A4A",
+                background: "#0A1124",
                 borderRadius: 12,
                 padding: 12,
               }}
@@ -1288,7 +1288,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
               <div style={{ fontWeight: 900, marginBottom: 10 }}>Entregas</div>
 
               {deliveriesLoading ? (
-                <div style={{ color: "#7777a0" }}>Cargando entregas...</div>
+                <div style={{ color: "#6E7A98" }}>Cargando entregas...</div>
               ) : deliveriesError ? (
                 <div style={{ color: "#f87171" }}>{deliveriesError}</div>
               ) : deliveriesBySale.length ? (
@@ -1302,9 +1302,9 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                           <div
                             key={sale.sale_id}
                             style={{
-                              border: "1px solid rgba(255,255,255,0.08)",
+                              border: "1px solid #1F2A4A",
                               borderRadius: 14,
-                              background: "#13131e",
+                              background: "#121A33",
                               overflow: "hidden",
                               boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
                             }}
@@ -1327,8 +1327,8 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                                   onClick={() => setEditSaleId(sale.sale_id)}
                                   style={{
                                     height: 26, padding: "0 10px", borderRadius: 8,
-                                    border: "1px solid rgba(99,102,241,0.4)",
-                                    background: "rgba(99,102,241,0.1)", color: "#818cf8",
+                                    border: "1px solid rgba(92,130,255,0.35)",
+                                    background: "rgba(92,130,255,0.1)", color: "#5C82FF",
                                     fontSize: 12, fontWeight: 800, cursor: "pointer",
                                     flexShrink: 0,
                                   }}
@@ -1336,7 +1336,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                                   Editar
                                 </button>
                               </div>
-                              <div style={{ color: "#8888a8", fontWeight: 800, textAlign: "right", flexShrink: 0, fontSize: 12 }}>
+                              <div style={{ color: "#6E7A98", fontWeight: 800, textAlign: "right", flexShrink: 0, fontSize: 12 }}>
                                 {formatArDate(sale.sale_date)}
                               </div>
                             </div>
@@ -1347,10 +1347,10 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                                 <div
                                   key={`${r.sale_id}-${r.product_id}-${idx}`}
                                   style={{
-                                    border: "1px solid rgba(255,255,255,0.07)",
+                                    border: "1px solid #1F2A4A",
                                     borderRadius: 12,
                                     padding: 10,
-                                    background: "#0f0f19",
+                                    background: "#0A1124",
                                     display: "grid",
                                     gap: 6,
                                   }}
@@ -1360,15 +1360,15 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                                   </div>
 
                                   {r.notes ? (
-                                    <div style={{ color: "#7777a0", fontSize: 12 }}>Nota: {r.notes}</div>
+                                    <div style={{ color: "#6E7A98", fontSize: 12 }}>Nota: {r.notes}</div>
                                   ) : null}
 
-                                  <div style={{ display: "flex", justifyContent: "space-between", color: "#aaaac0" }}>
+                                  <div style={{ display: "flex", justifyContent: "space-between", color: "#A5B0CC" }}>
                                     <span>Cant</span>
                                     <span style={{ fontWeight: 900 }}>{Number(r.quantity || 0).toFixed(2)}</span>
                                   </div>
 
-                                  <div style={{ display: "flex", justifyContent: "space-between", color: "#aaaac0" }}>
+                                  <div style={{ display: "flex", justifyContent: "space-between", color: "#A5B0CC" }}>
                                     <span>Precio unit</span>
                                     <span style={{ fontWeight: 900 }}>${Number(r.unit_price || 0).toFixed(2)}</span>
                                   </div>
@@ -1386,7 +1386,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                               const stmtSale = statement?.sales?.find(s => s.sale_id === sale.sale_id);
                               const paid = Number(stmtSale?.paid ?? 0);
                               return (
-                                <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                                <div style={{ borderTop: "1px solid #1F2A4A" }}>
                                   <div
                                     style={{
                                       padding: "10px 12px 4px",
@@ -1403,7 +1403,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                                       padding: "4px 12px 10px",
                                       display: "flex",
                                       justifyContent: "space-between",
-                                      color: paid >= Number(sale.total || 0) ? "#4ade80" : paid > 0 ? "#facc15" : "#8888a8",
+                                      color: paid >= Number(sale.total || 0) ? "#4ade80" : paid > 0 ? "#facc15" : "#6E7A98",
                                       fontSize: 13,
                                       fontWeight: 700,
                                     }}
@@ -1429,8 +1429,8 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                         width: "100%",
                         height: 48,
                         borderRadius: 12,
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        background: "#0f0f19",
+                        border: "1px solid #1F2A4A",
+                        background: "#0A1124",
                         color: "#fff",
                         fontWeight: 900,
                         marginTop: 10,
@@ -1444,7 +1444,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
 
                 </>
               ) : (
-                <div style={{ color: "#7777a0" }}>No hay entregas registradas.</div>
+                <div style={{ color: "#6E7A98" }}>No hay entregas registradas.</div>
               )}
             </div>
           ) : null}
@@ -1453,8 +1453,8 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
           {clientView === "payments" ? (
             <div
               style={{
-                border: "1px solid rgba(255,255,255,0.05)",
-                background: "#0f0f19",
+                border: "1px solid #1F2A4A",
+                background: "#0A1124",
                 borderRadius: 12,
                 padding: 12,
               }}
@@ -1462,7 +1462,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
               <div style={{ fontWeight: 900, marginBottom: 10 }}>Pagos</div>
 
               {paymentsLoading ? (
-                <div style={{ color: "#7777a0" }}>Cargando pagos...</div>
+                <div style={{ color: "#6E7A98" }}>Cargando pagos...</div>
               ) : paymentsError ? (
                 <div style={{ color: "#f87171" }}>{paymentsError}</div>
               ) : paymentsData.length ? (
@@ -1480,10 +1480,10 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                       <div
                         key={p.payment_id}
                         style={{
-                          border: "1px solid rgba(255,255,255,0.08)",
+                          border: "1px solid #1F2A4A",
                           borderRadius: 14,
                           padding: 12,
-                          background: "#13131e",
+                          background: "#121A33",
                           display: "grid",
                           gap: 8,
                           boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
@@ -1505,16 +1505,16 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                               }}
                               style={{
                                 height: 26, padding: "0 10px", borderRadius: 8,
-                                border: "1px solid rgba(99,102,241,0.4)",
-                                background: editPaymentId === p.payment_id ? "rgba(99,102,241,0.25)" : "rgba(99,102,241,0.1)",
-                                color: "#818cf8", fontSize: 12, fontWeight: 800, cursor: "pointer",
+                                border: "1px solid rgba(92,130,255,0.35)",
+                                background: editPaymentId === p.payment_id ? "rgba(92,130,255,0.2)" : "rgba(92,130,255,0.1)",
+                                color: "#5C82FF", fontSize: 12, fontWeight: 800, cursor: "pointer",
                                 flexShrink: 0,
                               }}
                             >
                               {editPaymentId === p.payment_id ? "Cancelar" : "Editar"}
                             </button>
                           </div>
-                          <div style={{ color: "#8888a8", flexShrink: 0, fontSize: 12 }}>{formatArDate(p.payment_date)}</div>
+                          <div style={{ color: "#6E7A98", flexShrink: 0, fontSize: 12 }}>{formatArDate(p.payment_date)}</div>
                         </div>
 
                         {editPaymentId === p.payment_id ? (
@@ -1526,7 +1526,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                               onChange={(e) => setEditPayAmount(e.target.value)}
                               style={{
                                 height: 42, fontSize: 15, borderRadius: 10,
-                                border: "1px solid rgba(255,255,255,0.08)", background: "#0f0f19",
+                                border: "1px solid #1F2A4A", background: "#0A1124",
                                 color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box",
                               }}
                             />
@@ -1536,7 +1536,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                               onChange={(e) => setEditPayNotes(e.target.value)}
                               style={{
                                 height: 42, fontSize: 15, borderRadius: 10,
-                                border: "1px solid rgba(255,255,255,0.08)", background: "#0f0f19",
+                                border: "1px solid #1F2A4A", background: "#0A1124",
                                 color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box",
                               }}
                             />
@@ -1579,7 +1579,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                               }}
                               style={{
                                 height: 42, borderRadius: 10, border: "none",
-                                background: editPaySubmitting ? "#3b3b8a" : "#6366f1",
+                                background: editPaySubmitting ? "#3b3b8a" : "#5C82FF",
                                 color: "#fff", fontWeight: 900, fontSize: 14,
                                 cursor: editPaySubmitting ? "not-allowed" : "pointer",
                                 opacity: editPaySubmitting ? 0.7 : 1,
@@ -1595,7 +1595,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                               <span>${Number(p.amount || 0).toFixed(2)}</span>
                             </div>
                             {p.notes ? (
-                              <div style={{ color: "#8888a8", fontSize: 13 }}>Nota: {p.notes}</div>
+                              <div style={{ color: "#6E7A98", fontSize: 13 }}>Nota: {p.notes}</div>
                             ) : null}
                           </>
                         )}
@@ -1605,7 +1605,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
 
                 </>
               ) : (
-                <div style={{ color: "#7777a0" }}>No hay pagos registrados.</div>
+                <div style={{ color: "#6E7A98" }}>No hay pagos registrados.</div>
               )}
             </div>
           ) : null}
@@ -1680,8 +1680,8 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
     height: 48,
     fontSize: 16,
     borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: "#13131e",
+    border: "1px solid #1F2A4A",
+    background: "#121A33",
     color: "#fff",
     padding: "0 12px",
     outline: "none",
@@ -1825,10 +1825,10 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
   const priceListsSection = (inputs, setInputs) =>
     priceLists.length > 0 && (
       <div style={{ display: "grid", gap: 8 }}>
-        <div style={{ fontWeight: 800, fontSize: 13, color: "#8888a8" }}>Precios de venta por lista</div>
+        <div style={{ fontWeight: 800, fontSize: 13, color: "#6E7A98" }}>Precios de venta por lista</div>
         {priceLists.map((pl) => (
           <div key={pl.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <label style={{ flex: "0 0 140px", color: "#aaaac0", fontSize: 14, fontWeight: 700 }}>
+            <label style={{ flex: "0 0 140px", color: "#A5B0CC", fontSize: 14, fontWeight: 700 }}>
               {pl.name}
             </label>
             <input
@@ -1848,8 +1848,8 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
       {showForm && (
         <div
           style={{
-            border: "1px solid rgba(255,255,255,0.05)",
-            background: "#0f0f19",
+            border: "1px solid #1F2A4A",
+            background: "#0A1124",
             borderRadius: 14,
             padding: 14,
             display: "grid",
@@ -1884,9 +1884,9 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
               type="checkbox"
               checked={isService}
               onChange={(e) => setIsService(e.target.checked)}
-              style={{ width: 18, height: 18, accentColor: "#6366f1", cursor: "pointer" }}
+              style={{ width: 18, height: 18, accentColor: "#5C82FF", cursor: "pointer" }}
             />
-            <span style={{ color: "#aaaac0", fontSize: 14 }}>Es un servicio (no controla stock)</span>
+            <span style={{ color: "#A5B0CC", fontSize: 14 }}>Es un servicio (no controla stock)</span>
           </label>
           {priceListsSection(priceInputs, setPriceInputs)}
           <button
@@ -1896,8 +1896,8 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
             style={{
               height: 52,
               borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.08)",
-              background: submitting ? "#09091a" : "#0f0f19",
+              border: "1px solid #1F2A4A",
+              background: submitting ? "#0A1124" : "#0A1124",
               color: "#fff",
               fontWeight: 900,
               fontSize: 16,
@@ -1918,8 +1918,8 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
             height: 48,
             fontSize: 16,
             borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.08)",
-            background: "#13131e",
+            border: "1px solid #1F2A4A",
+            background: "#121A33",
             color: "#fff",
             padding: "0 12px",
             outline: "none",
@@ -1936,9 +1936,9 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
             width: 48,
             height: 48,
             borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.08)",
-            background: showForm ? "rgba(99,102,241,0.2)" : "#13131e",
-            color: showForm ? "#f87171" : "#818cf8",
+            border: "1px solid #1F2A4A",
+            background: showForm ? "rgba(92,130,255,0.15)" : "#121A33",
+            color: showForm ? "#f87171" : "#5C82FF",
             fontSize: showForm ? 20 : 24,
             fontWeight: 300,
             flexShrink: 0,
@@ -1954,7 +1954,7 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
 
       <div style={{ display: "grid", gap: 10 }}>
         {filtered.length === 0 ? (
-          <div style={{ color: "#7777a0" }}>
+          <div style={{ color: "#6E7A98" }}>
             {products.length === 0
               ? "No hay productos. Creá uno con el botón +."
               : "Sin resultados para esa búsqueda."}
@@ -1964,8 +1964,8 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
             <div
               key={p.id}
               style={{
-                border: "1px solid rgba(255,255,255,0.05)",
-                background: "#0f0f19",
+                border: "1px solid #1F2A4A",
+                background: "#0A1124",
                 borderRadius: 14,
                 padding: 14,
                 display: "grid",
@@ -1975,7 +1975,7 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
             >
               {editingId === p.id ? (
                 <>
-                  <div style={{ fontWeight: 900, fontSize: 13, color: "#8888a8" }}>Editando producto</div>
+                  <div style={{ fontWeight: 900, fontSize: 13, color: "#6E7A98" }}>Editando producto</div>
                   <input
                     placeholder="Nombre"
                     style={inputStyle}
@@ -2000,18 +2000,18 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
                       type="checkbox"
                       checked={editActive}
                       onChange={(e) => setEditActive(e.target.checked)}
-                      style={{ width: 18, height: 18, accentColor: "#6366f1", cursor: "pointer" }}
+                      style={{ width: 18, height: 18, accentColor: "#5C82FF", cursor: "pointer" }}
                     />
-                    <span style={{ color: "#aaaac0", fontSize: 14 }}>Activo</span>
+                    <span style={{ color: "#A5B0CC", fontSize: 14 }}>Activo</span>
                   </label>
                   <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", userSelect: "none" }}>
                     <input
                       type="checkbox"
                       checked={editIsService}
                       onChange={(e) => setEditIsService(e.target.checked)}
-                      style={{ width: 18, height: 18, accentColor: "#6366f1", cursor: "pointer" }}
+                      style={{ width: 18, height: 18, accentColor: "#5C82FF", cursor: "pointer" }}
                     />
-                    <span style={{ color: "#aaaac0", fontSize: 14 }}>Es un servicio (no controla stock)</span>
+                    <span style={{ color: "#A5B0CC", fontSize: 14 }}>Es un servicio (no controla stock)</span>
                   </label>
                   {priceListsSection(editPriceInputs, setEditPriceInputs)}
                   <div style={{ display: "flex", gap: 10 }}>
@@ -2023,8 +2023,8 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
                         flex: 1,
                         height: 48,
                         borderRadius: 12,
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        background: editSubmitting ? "#09091a" : "#0f0f19",
+                        border: "1px solid #1F2A4A",
+                        background: editSubmitting ? "#0A1124" : "#0A1124",
                         color: "#fff",
                         fontWeight: 900,
                         opacity: editSubmitting ? 0.7 : 1,
@@ -2040,9 +2040,9 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
                         flex: 1,
                         height: 48,
                         borderRadius: 12,
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        background: "#0f0f19",
-                        color: "#7777a0",
+                        border: "1px solid #1F2A4A",
+                        background: "#0A1124",
+                        color: "#6E7A98",
                         fontWeight: 900,
                       }}
                     >
@@ -2055,7 +2055,7 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div style={{ fontWeight: 900 }}>{p.name}</div>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      <div style={{ color: "#666688", fontSize: 13 }}>{p.type}</div>
+                      <div style={{ color: "#6E7A98", fontSize: 13 }}>{p.type}</div>
                       <button
                         type="button"
                         onClick={() => { setShowForm(false); startEdit(p); }}
@@ -2063,8 +2063,8 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
                           height: 34,
                           padding: "0 12px",
                           borderRadius: 10,
-                          border: "1px solid rgba(255,255,255,0.11)",
-                          background: "#0f0f19",
+                          border: "1px solid #2B3960",
+                          background: "#0A1124",
                           color: "#fff",
                           fontWeight: 800,
                           fontSize: 13,
@@ -2076,21 +2076,21 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
                   </div>
 
                   {p.cost_price != null && (
-                    <div style={{ display: "flex", justifyContent: "space-between", color: "#aaaac0", fontSize: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "#A5B0CC", fontSize: 14 }}>
                       <span>Precio costo</span>
                       <span style={{ fontWeight: 800 }}>${Number(p.cost_price).toFixed(2)}</span>
                     </div>
                   )}
 
                   {p.prices && p.prices.length > 0 && (
-                    <div style={{ display: "grid", gap: 4, borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 8 }}>
-                      <div style={{ color: "#55556a", fontSize: 12 }}>Precios de venta</div>
+                    <div style={{ display: "grid", gap: 4, borderTop: "1px solid #1F2A4A", paddingTop: 8 }}>
+                      <div style={{ color: "#6E7A98", fontSize: 12 }}>Precios de venta</div>
                       {p.prices.map((pr) => (
                         <div
                           key={pr.price_list_id}
                           style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}
                         >
-                          <span style={{ color: "#8888a8" }}>{pr.price_list_name}</span>
+                          <span style={{ color: "#6E7A98" }}>{pr.price_list_name}</span>
                           <span style={{ fontWeight: 900 }}>${Number(pr.price).toFixed(2)}</span>
                         </div>
                       ))}
@@ -2106,8 +2106,8 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
       {/* Listas de precios */}
       <div
         style={{
-          border: "1px solid rgba(255,255,255,0.05)",
-          background: "#0f0f19",
+          border: "1px solid #1F2A4A",
+          background: "#0A1124",
           borderRadius: 14,
           padding: 14,
           display: "grid",
@@ -2125,8 +2125,8 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
               height: 34,
               padding: "0 14px",
               borderRadius: 10,
-              border: "1px solid rgba(255,255,255,0.11)",
-              background: showPlForm ? "#13131e" : "#0f0f19",
+              border: "1px solid #2B3960",
+              background: showPlForm ? "#121A33" : "#0A1124",
               color: "#fff",
               fontWeight: 800,
               fontSize: 13,
@@ -2144,8 +2144,8 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
                 style={{
                   padding: "6px 14px",
                   borderRadius: 20,
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  background: "#13131e",
+                  border: "1px solid #1F2A4A",
+                  background: "#121A33",
                   color: "#fff",
                   fontSize: 13,
                   fontWeight: 700,
@@ -2166,8 +2166,8 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
                 height: 48,
                 fontSize: 16,
                 borderRadius: 12,
-                border: "1px solid rgba(255,255,255,0.08)",
-                background: "#13131e",
+                border: "1px solid #1F2A4A",
+                background: "#121A33",
                 color: "#fff",
                 padding: "0 12px",
                 outline: "none",
@@ -2185,8 +2185,8 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
                 height: 48,
                 padding: "0 18px",
                 borderRadius: 12,
-                border: "1px solid rgba(255,255,255,0.08)",
-                background: plSubmitting ? "#09091a" : "#0f0f19",
+                border: "1px solid #1F2A4A",
+                background: plSubmitting ? "#0A1124" : "#0A1124",
                 color: "#fff",
                 fontWeight: 900,
                 opacity: plSubmitting ? 0.7 : 1,
@@ -2333,7 +2333,7 @@ function StockScreen({ products, pushToast }) {
 
   const inputStyle = {
     width: "100%", height: 44, fontSize: 15, borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.08)", background: "#13131e", color: "#fff",
+    border: "1px solid #1F2A4A", background: "#121A33", color: "#fff",
     padding: "0 12px", outline: "none", boxSizing: "border-box",
   };
 
@@ -2357,9 +2357,9 @@ function StockScreen({ products, pushToast }) {
             type="button"
             onClick={() => setTab(key)}
             style={{
-              flex: 1, height: 40, borderRadius: 10, border: "1px solid rgba(255,255,255,0.08)",
-              background: tab === key ? "#6366f1" : "#13131e",
-              color: tab === key ? "#fff" : "#8888a8",
+              flex: 1, height: 40, borderRadius: 10, border: "1px solid #1F2A4A",
+              background: tab === key ? "#5C82FF" : "#121A33",
+              color: tab === key ? "#fff" : "#6E7A98",
               fontWeight: 900, fontSize: 14, cursor: "pointer",
             }}
           >
@@ -2374,8 +2374,8 @@ function StockScreen({ products, pushToast }) {
           type="button"
           onClick={openNewForm}
           style={{
-            height: 44, borderRadius: 10, border: "1px solid rgba(255,255,255,0.11)",
-            background: "#13131e", color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer",
+            height: 44, borderRadius: 10, border: "1px solid #2B3960",
+            background: "#121A33", color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer",
           }}
         >
           + Nuevo ingreso
@@ -2384,13 +2384,13 @@ function StockScreen({ products, pushToast }) {
 
       {/* Formulario crear/editar */}
       {showForm && (
-        <div style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 16, background: "#0f0f19", display: "grid", gap: 12, boxShadow: "0 2px 16px rgba(0,0,0,0.3)" }}>
+        <div style={{ border: "1px solid #1F2A4A", borderRadius: 16, padding: 16, background: "#0A1124", display: "grid", gap: 12, boxShadow: "0 2px 16px rgba(0,0,0,0.3)" }}>
           <div style={{ fontWeight: 900, fontSize: 15 }}>
             {editingEntry ? "Editar ingreso" : "Nuevo ingreso de stock"}
           </div>
 
           <div>
-            <label style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#8888a8" }}>Fecha</label>
+            <label style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#6E7A98" }}>Fecha</label>
             <input
               type="datetime-local"
               value={formDate}
@@ -2400,7 +2400,7 @@ function StockScreen({ products, pushToast }) {
           </div>
 
           <div>
-            <label style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#8888a8" }}>Nota (opcional)</label>
+            <label style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#6E7A98" }}>Nota (opcional)</label>
             <input
               placeholder="Nota del ingreso..."
               value={formNotes}
@@ -2410,8 +2410,8 @@ function StockScreen({ products, pushToast }) {
           </div>
 
           {/* Agregar ítem al formulario */}
-          <div style={{ border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, padding: 12, display: "grid", gap: 8 }}>
-            <div style={{ fontSize: 13, color: "#8888a8", fontWeight: 700 }}>Agregar producto</div>
+          <div style={{ border: "1px solid #1F2A4A", borderRadius: 10, padding: 12, display: "grid", gap: 8 }}>
+            <div style={{ fontSize: 13, color: "#6E7A98", fontWeight: 700 }}>Agregar producto</div>
             <SearchDropdown
               inputRef={formProductRef}
               label=""
@@ -2453,8 +2453,8 @@ function StockScreen({ products, pushToast }) {
               type="button"
               onClick={addFormItem}
               style={{
-                height: 40, borderRadius: 10, border: "1px solid rgba(255,255,255,0.11)",
-                background: "#13131e", color: "#fff", fontWeight: 800, cursor: "pointer",
+                height: 40, borderRadius: 10, border: "1px solid #2B3960",
+                background: "#121A33", color: "#fff", fontWeight: 800, cursor: "pointer",
               }}
             >
               + Agregar
@@ -2469,19 +2469,19 @@ function StockScreen({ products, pushToast }) {
                   key={idx}
                   style={{
                     display: "flex", justifyContent: "space-between", alignItems: "center",
-                    border: "1px solid rgba(255,255,255,0.05)", borderRadius: 8, padding: "8px 12px", background: "#0f0f19",
+                    border: "1px solid #1F2A4A", borderRadius: 8, padding: "8px 12px", background: "#0A1124",
                   }}
                 >
                   <div>
                     <div style={{ fontWeight: 800, fontSize: 14 }}>{it.product_name}</div>
-                    <div style={{ color: "#8888a8", fontSize: 13 }}>{fmtQty(it.quantity)} u.</div>
+                    <div style={{ color: "#6E7A98", fontSize: 13 }}>{fmtQty(it.quantity)} u.</div>
                   </div>
                   <button
                     type="button"
                     onClick={() => removeFormItem(idx)}
                     style={{
-                      height: 32, width: 36, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)",
-                      background: "#0f0f19", color: "#f87171", fontWeight: 900, cursor: "pointer",
+                      height: 32, width: 36, borderRadius: 8, border: "1px solid #1F2A4A",
+                      background: "#0A1124", color: "#f87171", fontWeight: 900, cursor: "pointer",
                     }}
                   >
                     ✕
@@ -2496,8 +2496,8 @@ function StockScreen({ products, pushToast }) {
               type="button"
               onClick={() => { setShowForm(false); setEditingEntry(null); }}
               style={{
-                flex: 1, height: 44, borderRadius: 10, border: "1px solid rgba(255,255,255,0.11)",
-                background: "#0f0f19", color: "#fff", fontWeight: 800, cursor: "pointer",
+                flex: 1, height: 44, borderRadius: 10, border: "1px solid #2B3960",
+                background: "#0A1124", color: "#fff", fontWeight: 800, cursor: "pointer",
               }}
             >
               Cancelar
@@ -2508,7 +2508,7 @@ function StockScreen({ products, pushToast }) {
               disabled={formSubmitting}
               style={{
                 flex: 2, height: 44, borderRadius: 10, border: "none",
-                background: "#6366f1", color: "#fff", fontWeight: 900, cursor: "pointer",
+                background: "#5C82FF", color: "#fff", fontWeight: 900, cursor: "pointer",
               }}
             >
               {formSubmitting ? "Guardando..." : (editingEntry ? "Actualizar" : "Guardar ingreso")}
@@ -2518,10 +2518,10 @@ function StockScreen({ products, pushToast }) {
       )}
 
       {loading ? (
-        <div style={{ color: "#7777a0" }}>Cargando...</div>
+        <div style={{ color: "#6E7A98" }}>Cargando...</div>
       ) : tab === "current" ? (
         currentStock.length === 0 ? (
-          <div style={{ color: "#7777a0" }}>Sin datos de stock. Cargá un ingreso primero.</div>
+          <div style={{ color: "#6E7A98" }}>Sin datos de stock. Cargá un ingreso primero.</div>
         ) : (
           <>
             <input
@@ -2530,7 +2530,7 @@ function StockScreen({ products, pushToast }) {
               onChange={(e) => setStockQuery(e.target.value)}
               style={{
                 width: "100%", height: 44, fontSize: 15, borderRadius: 10,
-                border: "1px solid rgba(255,255,255,0.08)", background: "#13131e", color: "#fff",
+                border: "1px solid #1F2A4A", background: "#121A33", color: "#fff",
                 padding: "0 12px", outline: "none", boxSizing: "border-box",
               }}
             />
@@ -2540,12 +2540,12 @@ function StockScreen({ products, pushToast }) {
             <div
               key={s.product_id}
               style={{
-                border: "1px solid rgba(255,255,255,0.05)", background: "#0f0f19", borderRadius: 14, padding: 14, display: "grid", gap: 6, boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+                border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 6, boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
               }}
             >
               <div style={{ fontWeight: 900, fontSize: 15 }}>{s.product_name}</div>
-              <div style={{ fontSize: 12, color: "#666688" }}>{s.product_type}</div>
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 14, color: "#aaaac0", marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: "#6E7A98" }}>{s.product_type}</div>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 14, color: "#A5B0CC", marginTop: 4 }}>
                 <span>Ingresado: <b style={{ color: "#fff" }}>{fmtQty(s.stock_in)}</b></span>
                 <span>Vendido: <b style={{ color: "#fff" }}>{fmtQty(s.stock_out)}</b></span>
                 <span>
@@ -2561,12 +2561,12 @@ function StockScreen({ products, pushToast }) {
         )
       ) : (
         entries.length === 0 ? (
-          <div style={{ color: "#7777a0" }}>No hay ingresos de stock.</div>
+          <div style={{ color: "#6E7A98" }}>No hay ingresos de stock.</div>
         ) : (
           entries.map((e) => (
             <div
               key={e.id}
-              style={{ border: "1px solid rgba(255,255,255,0.05)", background: "#0f0f19", borderRadius: 14, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.25)" }}
+              style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.25)" }}
             >
               <button
                 type="button"
@@ -2578,16 +2578,16 @@ function StockScreen({ products, pushToast }) {
               >
                 <div style={{ textAlign: "left" }}>
                   <div style={{ fontWeight: 900, fontSize: 15 }}>{fmtDate(e.entry_date)}</div>
-                  {e.notes && <div style={{ fontSize: 12, color: "#666688", marginTop: 2 }}>{e.notes}</div>}
-                  <div style={{ fontSize: 12, color: "#55556a", marginTop: 2 }}>{e.items.length} producto{e.items.length !== 1 ? "s" : ""}</div>
+                  {e.notes && <div style={{ fontSize: 12, color: "#6E7A98", marginTop: 2 }}>{e.notes}</div>}
+                  <div style={{ fontSize: 12, color: "#6E7A98", marginTop: 2 }}>{e.items.length} producto{e.items.length !== 1 ? "s" : ""}</div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <button
                     type="button"
                     onClick={(ev) => { ev.stopPropagation(); openEditForm(e); setTab("entries"); }}
                     style={{
-                      height: 32, padding: "0 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)",
-                      background: "#13131e", color: "#fff", fontWeight: 800, fontSize: 12, cursor: "pointer",
+                      height: 32, padding: "0 12px", borderRadius: 8, border: "1px solid #1F2A4A",
+                      background: "#121A33", color: "#fff", fontWeight: 800, fontSize: 12, cursor: "pointer",
                     }}
                   >
                     Editar
@@ -2599,7 +2599,7 @@ function StockScreen({ products, pushToast }) {
               {expandedEntry === e.id && (
                 <div style={{ borderTop: "1px solid rgba(255,255,255,0.04)", padding: "10px 14px", display: "grid", gap: 6 }}>
                   {e.items.map((it) => (
-                    <div key={it.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#aaaac0" }}>
+                    <div key={it.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#A5B0CC" }}>
                       <span>{it.product_name}</span>
                       <span style={{ fontWeight: 800, color: "#34d399" }}>+{fmtQty(it.quantity)}</span>
                     </div>
@@ -2658,8 +2658,8 @@ function DebtorsScreen({ pushToast }) {
           height: 48,
           fontSize: 16,
           borderRadius: 12,
-          border: "1px solid rgba(255,255,255,0.08)",
-          background: "#13131e",
+          border: "1px solid #1F2A4A",
+          background: "#121A33",
           color: "#fff",
           padding: "0 12px",
           outline: "none",
@@ -2670,11 +2670,11 @@ function DebtorsScreen({ pushToast }) {
       />
 
       {loading ? (
-        <div style={{ color: "#7777a0" }}>Cargando...</div>
+        <div style={{ color: "#6E7A98" }}>Cargando...</div>
       ) : error ? (
         <div style={{ color: "#f87171" }}>{error}</div>
       ) : filtered.length === 0 ? (
-        <div style={{ color: "#7777a0" }}>
+        <div style={{ color: "#6E7A98" }}>
           {debtors.length === 0 ? "No hay deudores. Todos los clientes están al día." : "Sin resultados."}
         </div>
       ) : (
@@ -2682,8 +2682,8 @@ function DebtorsScreen({ pushToast }) {
           <div
             key={d.client_id}
             style={{
-              border: "1px solid rgba(255,255,255,0.05)",
-              background: "#0f0f19",
+              border: "1px solid #1F2A4A",
+              background: "#0A1124",
               borderRadius: 14,
               padding: 14,
               display: "grid",
@@ -2692,11 +2692,11 @@ function DebtorsScreen({ pushToast }) {
             }}
           >
             <div style={{ fontWeight: 900, fontSize: 16 }}>{d.client_name}</div>
-            <div style={{ display: "flex", justifyContent: "space-between", color: "#aaaac0", fontSize: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", color: "#A5B0CC", fontSize: 14 }}>
               <span>Entregado</span>
               <span style={{ fontWeight: 800 }}>${fmt(d.total_delivered)}</span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", color: "#aaaac0", fontSize: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", color: "#A5B0CC", fontSize: 14 }}>
               <span>Pagado</span>
               <span style={{ fontWeight: 800 }}>${fmt(d.total_paid)}</span>
             </div>
@@ -2705,7 +2705,7 @@ function DebtorsScreen({ pushToast }) {
                 display: "flex",
                 justifyContent: "space-between",
                 fontWeight: 900,
-                borderTop: "1px solid rgba(255,255,255,0.07)",
+                borderTop: "1px solid #1F2A4A",
                 paddingTop: 6,
                 marginTop: 2,
               }}
@@ -2735,7 +2735,7 @@ function UsersScreen({ pushToast, currentUser }) {
 
   const inputStyle = {
     height: 48, fontSize: 15, borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.08)", background: "#13131e",
+    border: "1px solid #1F2A4A", background: "#121A33",
     color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box", width: "100%",
   };
   const selectStyle = { ...inputStyle, cursor: "pointer" };
@@ -2755,9 +2755,9 @@ function UsersScreen({ pushToast, currentUser }) {
       onClick={() => setActiveTab(key)}
       style={{
         flex: 1, height: 40, borderRadius: 10, cursor: "pointer",
-        border: activeTab === key ? "1px solid #6366f1" : "1px solid rgba(255,255,255,0.08)",
-        background: activeTab === key ? "rgba(99,102,241,0.15)" : "#0f0f19",
-        color: activeTab === key ? "#818cf8" : "#8888a8",
+        border: activeTab === key ? "1px solid #5C82FF" : "1px solid #1F2A4A",
+        background: activeTab === key ? "#1A2453" : "#0A1124",
+        color: activeTab === key ? "#5C82FF" : "#6E7A98",
         fontWeight: 900, fontSize: 14,
       }}
     >{label}</button>
@@ -2850,12 +2850,12 @@ function UsersScreen({ pushToast, currentUser }) {
     return (
       <div style={{ display: "grid", gap: 12 }}>
         <button type="button" onClick={() => setShowForm((v) => !v)}
-          style={{ height: 44, borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)", background: showForm ? "#1a1a28" : "#0f0f19", color: "#fff", fontWeight: 900, cursor: "pointer" }}>
+          style={{ height: 44, borderRadius: 12, border: "1px solid #1F2A4A", background: showForm ? "#1a1a28" : "#0A1124", color: "#fff", fontWeight: 900, cursor: "pointer" }}>
           {showForm ? "Cancelar" : "+ Nuevo usuario"}
         </button>
 
         {showForm && (
-          <div style={{ border: "1px solid rgba(255,255,255,0.05)", background: "#0f0f19", borderRadius: 14, padding: 14, display: "grid", gap: 10 }}>
+          <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 10 }}>
             <div style={{ fontWeight: 900 }}>Nuevo usuario</div>
             <input style={inputStyle} placeholder="Nombre de usuario" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} />
             <input style={inputStyle} type="password" placeholder="Contraseña (mín. 8 caracteres)" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
@@ -2863,30 +2863,30 @@ function UsersScreen({ pushToast, currentUser }) {
               {roles.map((r) => <option key={r.id} value={r.name}>{r.name.charAt(0).toUpperCase() + r.name.slice(1)}</option>)}
             </select>
             <button type="button" disabled={submitting} onClick={createUser}
-              style={{ height: 48, borderRadius: 12, border: "none", background: submitting ? "#3b3b8a" : "#6366f1", color: "#fff", fontWeight: 900, cursor: "pointer" }}>
+              style={{ height: 48, borderRadius: 12, border: "none", background: submitting ? "#3b3b8a" : "#5C82FF", color: "#fff", fontWeight: 900, cursor: "pointer" }}>
               {submitting ? "Creando..." : "Crear usuario"}
             </button>
           </div>
         )}
 
-        {loading ? <div style={{ color: "#7777a0" }}>Cargando...</div> : users.map((u) => (
-          <div key={u.id} style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, background: "#13131e", padding: 14, display: "grid", gap: 10 }}>
+        {loading ? <div style={{ color: "#6E7A98" }}>Cargando...</div> : users.map((u) => (
+          <div key={u.id} style={{ border: "1px solid #1F2A4A", borderRadius: 14, background: "#121A33", padding: 14, display: "grid", gap: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <div>
                 <div style={{ fontWeight: 900, fontSize: 15 }}>{u.username}</div>
-                <div style={{ fontSize: 12, color: u.role === "admin" ? "#6366f1" : "#8888a8", fontWeight: 700, marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: u.role === "admin" ? "#5C82FF" : "#6E7A98", fontWeight: 700, marginTop: 2 }}>
                   {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {u.id !== currentUser.id && (
                   <select value={u.role} onChange={(e) => changeRole(u, e.target.value)}
-                    style={{ height: 34, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "#0f0f19", color: "#fff", padding: "0 8px", fontSize: 13, cursor: "pointer" }}>
+                    style={{ height: 34, borderRadius: 8, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", padding: "0 8px", fontSize: 13, cursor: "pointer" }}>
                     {roles.map((r) => <option key={r.id} value={r.name}>{r.name.charAt(0).toUpperCase() + r.name.slice(1)}</option>)}
                   </select>
                 )}
                 <button type="button" onClick={() => { setChangePwdId(u.id); setChangePwdValue(""); }}
-                  style={{ height: 34, padding: "0 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "#0f0f19", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                  style={{ height: 34, padding: "0 12px", borderRadius: 8, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                   Cambiar clave
                 </button>
                 {u.id !== currentUser.id && (
@@ -2899,16 +2899,16 @@ function UsersScreen({ pushToast, currentUser }) {
             </div>
             {!u.active && <div style={{ fontSize: 12, color: "#f87171", fontWeight: 700 }}>● Inactivo</div>}
             {changePwdId === u.id && (
-              <div style={{ display: "grid", gap: 8, borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 10 }}>
-                <div style={{ fontWeight: 800, fontSize: 13, color: "#8888a8" }}>NUEVA CONTRASEÑA</div>
+              <div style={{ display: "grid", gap: 8, borderTop: "1px solid #1F2A4A", paddingTop: 10 }}>
+                <div style={{ fontWeight: 800, fontSize: 13, color: "#6E7A98" }}>NUEVA CONTRASEÑA</div>
                 <input style={inputStyle} type="password" placeholder="Mínimo 8 caracteres" value={changePwdValue} onChange={(e) => setChangePwdValue(e.target.value)} />
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <button type="button" onClick={() => { setChangePwdId(null); setChangePwdValue(""); }}
-                    style={{ height: 40, borderRadius: 10, border: "1px solid rgba(255,255,255,0.08)", background: "#0f0f19", color: "#fff", fontWeight: 700, cursor: "pointer" }}>
+                    style={{ height: 40, borderRadius: 10, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", fontWeight: 700, cursor: "pointer" }}>
                     Cancelar
                   </button>
                   <button type="button" disabled={changePwdSubmitting} onClick={submitChangePwd}
-                    style={{ height: 40, borderRadius: 10, border: "none", background: changePwdSubmitting ? "#3b3b8a" : "#6366f1", color: "#fff", fontWeight: 900, cursor: "pointer" }}>
+                    style={{ height: 40, borderRadius: 10, border: "none", background: changePwdSubmitting ? "#3b3b8a" : "#5C82FF", color: "#fff", fontWeight: 900, cursor: "pointer" }}>
                     {changePwdSubmitting ? "Guardando..." : "Confirmar"}
                   </button>
                 </div>
@@ -2986,13 +2986,13 @@ function UsersScreen({ pushToast, currentUser }) {
       <div style={{ display: "grid", gap: 12 }}>
         {!showForm && (
           <button type="button" onClick={openCreate}
-            style={{ height: 44, borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)", background: "#0f0f19", color: "#fff", fontWeight: 900, cursor: "pointer" }}>
+            style={{ height: 44, borderRadius: 12, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", fontWeight: 900, cursor: "pointer" }}>
             + Nuevo rol
           </button>
         )}
 
         {showForm && (
-          <div style={{ border: "1px solid rgba(255,255,255,0.05)", background: "#0f0f19", borderRadius: 14, padding: 14, display: "grid", gap: 12 }}>
+          <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 12 }}>
             <div style={{ fontWeight: 900 }}>{editingRole ? "Editar rol" : "Nuevo rol"}</div>
             <input
               style={{ ...inputStyle, opacity: editingRole?.is_system ? 0.5 : 1 }}
@@ -3002,7 +3002,7 @@ function UsersScreen({ pushToast, currentUser }) {
               onChange={(e) => setFormName(e.target.value)}
             />
             <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontSize: 13, color: "#8888a8", fontWeight: 700 }}>PANTALLAS HABILITADAS</div>
+              <div style={{ fontSize: 13, color: "#6E7A98", fontWeight: 700 }}>PANTALLAS HABILITADAS</div>
               {SCREEN_OPTIONS.map(({ key, label }) => {
                 const locked = isAdminRole(editingRole);
                 const checked = locked ? true : formPerms.includes(key);
@@ -3013,23 +3013,23 @@ function UsersScreen({ pushToast, currentUser }) {
                       checked={checked}
                       disabled={locked}
                       onChange={() => !locked && togglePerm(key)}
-                      style={{ width: 18, height: 18, accentColor: "#6366f1", cursor: locked ? "default" : "pointer" }}
+                      style={{ width: 18, height: 18, accentColor: "#5C82FF", cursor: locked ? "default" : "pointer" }}
                     />
                     <span style={{ fontWeight: 700, fontSize: 14 }}>{label}</span>
                   </label>
                 );
               })}
               {isAdminRole(editingRole) && (
-                <div style={{ fontSize: 12, color: "#8888a8" }}>El rol admin siempre tiene acceso a todo.</div>
+                <div style={{ fontSize: 12, color: "#6E7A98" }}>El rol admin siempre tiene acceso a todo.</div>
               )}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <button type="button" onClick={cancelForm}
-                style={{ height: 44, borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)", background: "#0f0f19", color: "#fff", fontWeight: 700, cursor: "pointer" }}>
+                style={{ height: 44, borderRadius: 12, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", fontWeight: 700, cursor: "pointer" }}>
                 Cancelar
               </button>
               <button type="button" disabled={submitting} onClick={saveRole}
-                style={{ height: 44, borderRadius: 12, border: "none", background: submitting ? "#3b3b8a" : "#6366f1", color: "#fff", fontWeight: 900, cursor: "pointer" }}>
+                style={{ height: 44, borderRadius: 12, border: "none", background: submitting ? "#3b3b8a" : "#5C82FF", color: "#fff", fontWeight: 900, cursor: "pointer" }}>
                 {submitting ? "Guardando..." : "Guardar"}
               </button>
             </div>
@@ -3037,20 +3037,20 @@ function UsersScreen({ pushToast, currentUser }) {
         )}
 
         {roles.map((r) => (
-          <div key={r.id} style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, background: "#13131e", padding: 14, display: "grid", gap: 8 }}>
+          <div key={r.id} style={{ border: "1px solid #1F2A4A", borderRadius: 14, background: "#121A33", padding: 14, display: "grid", gap: 8 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontWeight: 900, fontSize: 15 }}>{r.name.charAt(0).toUpperCase() + r.name.slice(1)}</span>
-                  {r.is_system && <span style={{ fontSize: 11, background: "rgba(99,102,241,0.15)", color: "#818cf8", borderRadius: 6, padding: "2px 7px", fontWeight: 700 }}>sistema</span>}
+                  {r.is_system && <span style={{ fontSize: 11, background: "#1A2453", color: "#5C82FF", borderRadius: 6, padding: "2px 7px", fontWeight: 700 }}>sistema</span>}
                 </div>
-                <div style={{ fontSize: 12, color: "#7777a0", marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: "#6E7A98", marginTop: 4 }}>
                   {isAdminRole(r) ? "Acceso completo" : r.permissions.length === 0 ? "Sin pantallas habilitadas" : r.permissions.map(permLabel).join(", ")}
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button type="button" onClick={() => openEdit(r)}
-                  style={{ height: 32, padding: "0 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "#0f0f19", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                  style={{ height: 32, padding: "0 12px", borderRadius: 8, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                   Editar
                 </button>
                 {!r.is_system && (
@@ -3359,3 +3359,5 @@ function AppShell({ onLogout, currentUser }) {
     </>
   );
 }
+
+
