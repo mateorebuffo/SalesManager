@@ -89,7 +89,9 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
     try {
       const payload = {
         client_id: client.id,
-        sale_date: new Date(saleDate + 'T12:00:00').toISOString(),
+        sale_date: saleDate === localToday()
+          ? new Date().toISOString()
+          : new Date(saleDate + 'T12:00:00').toISOString(),
         notes: null,
         items: lines.map(l => ({
           product_id: l.p.id,

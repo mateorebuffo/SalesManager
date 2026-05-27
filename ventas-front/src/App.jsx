@@ -830,7 +830,9 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount,
-          payment_date: new Date(payDate + 'T12:00:00').toISOString(),
+          payment_date: payDate === localToday()
+            ? new Date().toISOString()
+            : new Date(payDate + 'T12:00:00').toISOString(),
           notes: payNotes?.trim() ? payNotes.trim() : null,
         }),
       });
