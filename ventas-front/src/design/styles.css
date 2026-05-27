@@ -1,0 +1,16 @@
+/* src/design/styles.css
+   Pequeños estilos globales que complementan los componentes del rediseño.
+   Importalo una vez en main.jsx o index.css. */
+
+.caja-qty-input:hover {
+  border-color: #B3BFD4 !important;
+  cursor: text;
+}
+.caja-qty-input:focus {
+  border-color: #2D5BFF !important;
+  box-shadow: 0 0 0 3px rgba(45,91,255,0.15);
+}
+
+/* Hide scrollbars on horizontal chip rows (Productos categorías, etc.) */
+.caja-no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.caja-no-scrollbar::-webkit-scrollbar { display: none; }

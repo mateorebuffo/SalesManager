@@ -1,4 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { themes } from "./design/tokens";
+import "./design/styles.css";
+import { AppShell as NewShell } from "./design/AppShell";
+import SaleScreen from "./design/screens/SaleScreen";
+import { Cart as CartIcon } from "./design/Icons";
 
 // En producción setear VITE_API_URL en el archivo .env de Netlify/Railway
 const API = import.meta.env.VITE_API_URL ?? `http://${window.location.hostname}:8000`;
@@ -328,138 +333,6 @@ const SCREEN_LABELS = {
   stock: "Stock",
   users: "Usuarios",
 };
-
-function NavBar({ screen, setScreen, onLogout, currentUser }) {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef(null);
-
-  useEffect(() => {
-    const onDown = (e) => {
-      if (!wrapRef.current) return;
-      if (!wrapRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("touchstart", onDown);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("touchstart", onDown);
-    };
-  }, []);
-
-  const navigate = (s) => {
-    setScreen(s);
-    setOpen(false);
-  };
-
-  return (
-    <div ref={wrapRef} style={{ position: "relative", marginBottom: 14 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          height: 52,
-          borderRadius: 14,
-          border: "1px solid rgba(255,255,255,0.08)",
-          background: "#13131e",
-          padding: "0 16px",
-          boxShadow: "0 2px 16px rgba(0,0,0,0.3)",
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-          <div style={{ fontWeight: 900, fontSize: 16 }}>{SCREEN_LABELS[screen]}</div>
-          {currentUser && (
-            <div style={{ fontSize: 11, color: "#6366f1", fontWeight: 700 }}>
-              {currentUser.username} · {currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)}
-            </div>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          style={{
-            height: 38,
-            width: 44,
-            borderRadius: 10,
-            border: "1px solid rgba(255,255,255,0.11)",
-            background: open ? "rgba(99,102,241,0.15)" : "#0f0f19",
-            color: "#fff",
-            fontWeight: 900,
-            fontSize: 18,
-            cursor: "pointer",
-          }}
-        >
-          {open ? "✕" : "☰"}
-        </button>
-      </div>
-
-      {open && (
-        <div
-          style={{
-            position: "absolute",
-            top: 58,
-            left: 0,
-            right: 0,
-            zIndex: 100,
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: 14,
-            background: "#13131e",
-            overflow: "hidden",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.06)",
-          }}
-        >
-          {Object.entries(SCREEN_LABELS).filter(([key]) => canSee(currentUser, key)).map(([key, label], idx, arr) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => navigate(key)}
-              style={{
-                width: "100%",
-                textAlign: "left",
-                padding: "16px 16px",
-                border: "none",
-                borderBottom: idx < arr.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
-                background: screen === key ? "#1a1a28" : "transparent",
-                color: "#fff",
-                fontSize: 16,
-                fontWeight: screen === key ? 900 : 700,
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                cursor: "pointer",
-              }}
-            >
-              <span style={{ fontSize: 8, opacity: screen === key ? 1 : 0 }}>●</span>
-              {label}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => { setOpen(false); onLogout(); }}
-            style={{
-              width: "100%",
-              textAlign: "left",
-              padding: "16px 16px",
-              border: "none",
-              borderTop: "1px solid rgba(255,255,255,0.07)",
-              background: "transparent",
-              color: "#f87171",
-              fontSize: 16,
-              fontWeight: 700,
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              cursor: "pointer",
-            }}
-          >
-            <span style={{ fontSize: 8, opacity: 0 }}>●</span>
-            Cerrar sesión
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function formatArDate(iso) {
   const d = new Date(iso);
@@ -920,9 +793,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
 
       try {
         const data = await fetchPayments(selectedClient.id);
-        // seguridad: solo generales en UI
-        const onlyGeneral = (data || []).filter((p) => p.sale_id == null);
-        setPaymentsData(onlyGeneral);
+        setPaymentsData(data || []);
       } catch (e) {
         setPaymentsError(e.message || "Error");
         setPaymentsData([]);
@@ -974,8 +845,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
       try {
         if (clientView === "payments" || (paymentsData && paymentsData.length > 0)) {
           const p = await fetchPayments(selectedClient.id);
-          const onlyGeneral = (p || []).filter((x) => x.sale_id == null);
-          setPaymentsData(onlyGeneral);
+          setPaymentsData(p || []);
           setPaymentsError("");
         }
       } catch {
@@ -1483,19 +1353,39 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                               ))}
                             </div>
 
-                            {/* Total */}
-                            <div
-                              style={{
-                                padding: 12,
-                                borderTop: "1px solid rgba(255,255,255,0.07)",
-                                display: "flex",
-                                justifyContent: "space-between",
-                                fontWeight: 900,
-                              }}
-                            >
-                              <div>TOTAL</div>
-                              <div>${Number(sale.total || 0).toFixed(2)}</div>
-                            </div>
+                            {/* Total + Pagado */}
+                            {(() => {
+                              const stmtSale = statement?.sales?.find(s => s.sale_id === sale.sale_id);
+                              const paid = Number(stmtSale?.paid ?? 0);
+                              return (
+                                <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                                  <div
+                                    style={{
+                                      padding: "10px 12px 4px",
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      fontWeight: 900,
+                                    }}
+                                  >
+                                    <div>TOTAL</div>
+                                    <div>${Number(sale.total || 0).toFixed(2)}</div>
+                                  </div>
+                                  <div
+                                    style={{
+                                      padding: "4px 12px 10px",
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      color: paid >= Number(sale.total || 0) ? "#4ade80" : paid > 0 ? "#facc15" : "#8888a8",
+                                      fontSize: 13,
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    <div>PAGADO</div>
+                                    <div>${paid.toFixed(2)}</div>
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
                         ))}
                       </div>
@@ -1667,7 +1557,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                                     fetchPayments(selectedClient.id),
                                   ]);
                                   setStatement(st);
-                                  setPaymentsData((pays || []).filter((x) => x.sale_id == null));
+                                  setPaymentsData(pays || []);
                                   setEditPaymentId(null);
                                   pushToast("Pago actualizado ✅", "success");
                                 } catch (e) {
@@ -1724,552 +1614,18 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
 
 /** Pantalla: Nueva venta (POS) */
 function NewSaleScreen({ clients, products, pushToast }) {
-  const [clientQuery, setClientQuery] = useState("");
-  const [selectedClient, setSelectedClient] = useState(null);
-
-  const [productQuery, setProductQuery] = useState("");
-  const [selectedProductObj, setSelectedProductObj] = useState(null);
-
-  const [items, setItems] = useState([]);
-
-  const [quantity, setQuantity] = useState("");
-  const [price, setPrice] = useState("");
-  const [itemNotes, setItemNotes] = useState("");
-  const [payment, setPayment] = useState("");
-  const [saleNotes, setSaleNotes] = useState("");
-  const [clientBalance, setClientBalance] = useState(null);
-  const [stockWarning, setStockWarning] = useState(null);
-  const [forceNote, setForceNote] = useState("");
-
-  const clientRef = useRef(null);
-  const productRef = useRef(null);
-  const qtyRef = useRef(null);
-  const priceRef = useRef(null);
-  const paymentRef = useRef(null);
-
-  useEffect(() => {
-    setTimeout(() => clientRef.current?.focus(), 0);
-  }, []);
-
-  useEffect(() => {
-    if (!selectedClient) { setClientBalance(null); return; }
-    apiFetch(`${API}/clients/${selectedClient.id}/statement`)
-      .then((r) => r.json())
-      .then((data) => setClientBalance(data.total_balance))
-      .catch(() => setClientBalance(null));
-  }, [selectedClient]);
-
-  const total = useMemo(() => {
-    return items.reduce((acc, it) => acc + it.quantity * it.unit_price, 0);
-  }, [items]);
-
-  const addItem = () => {
-    if (!selectedProductObj || !quantity || !price) return;
-
-    const q = Number(quantity);
-    const p = Number(price);
-    if (!Number.isFinite(q) || q <= 0) return;
-    if (!Number.isFinite(p) || p < 0) return;
-
-    setItems((prev) => [
-      ...prev,
-      {
-        product_id: selectedProductObj.id,
-        name: selectedProductObj.name,
-        quantity: q,
-        unit_price: p,
-        notes: itemNotes.trim() || null,
-      },
-    ]);
-
-    setSelectedProductObj(null);
-    setProductQuery("");
-    setQuantity("");
-    setPrice("");
-    setItemNotes("");
-
-    setTimeout(() => productRef.current?.focus(), 0);
-  };
-
-  const removeItem = (index) => {
-    setItems((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const submitSale = async (force = false) => {
-    if (!selectedClient) {
-      pushToast("Seleccioná un cliente.", "error");
-      return;
-    }
-    if (items.length === 0) {
-      pushToast("Agregá al menos un producto.", "error");
-      return;
-    }
-
-    let notesValue = saleNotes.trim() || null;
-    if (force) {
-      const stockNote = forceNote.trim() ? `[Stock externo: ${forceNote.trim()}]` : "[Stock externo]";
-      notesValue = notesValue ? `${notesValue} | ${stockNote}` : stockNote;
-    }
-
-    const body = {
-      client_id: selectedClient.id,
-      sale_date: new Date().toISOString(),
-      notes: notesValue,
-      items: items.map((i) => ({
-        product_id: i.product_id,
-        quantity: i.quantity,
-        unit_price: i.unit_price,
-        notes: i.notes || null,
-      })),
-      initial_payment_amount: payment ? Number(payment) : 0,
-    };
-
-    const url = force ? `${API}/sales?force=true` : `${API}/sales`;
-    const res = await apiFetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    if (res.status === 409) {
-      const err = await res.json().catch(() => ({}));
-      if (err.detail?.code === "STOCK_INSUFFICIENT") {
-        setStockWarning(err.detail);
-        setForceNote("");
-        return;
-      }
-    }
-
-    if (res.ok) {
-      setItems([]);
-      setPayment("");
-      setSaleNotes("");
-      setSelectedProductObj(null);
-      setProductQuery("");
-      setQuantity("");
-      setPrice("");
-      setItemNotes("");
-      setSelectedClient(null);
-      setClientQuery("");
-      setClientBalance(null);
-      setStockWarning(null);
-
-      pushToast("Venta creada ✅", "success");
-      setTimeout(() => clientRef.current?.focus(), 0);
-    } else {
-      const err = await res.json().catch(() => ({}));
-      pushToast(err.detail || "Error al crear venta", "error");
-    }
-  };
-
+  // Wrapper around the new design system SaleScreen.
+  // Legacy pushToast is (message, type, ms); the new SaleScreen calls
+  // pushToast(type, message). Adapt here so both signatures work.
   return (
-    <>
-      {stockWarning && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,.75)",
-            zIndex: 200,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)",
-            paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
-            paddingLeft: "calc(env(safe-area-inset-left, 0px) + 16px)",
-            paddingRight: "calc(env(safe-area-inset-right, 0px) + 16px)",
-          }}
-        >
-          <div
-            style={{
-              width: "100%",
-              maxWidth: 480,
-              background: "#13131e",
-              borderRadius: 16,
-              border: "1px solid rgba(255,255,255,0.08)",
-              padding: 20,
-              display: "grid",
-              gap: 14,
-            }}
-          >
-            <div style={{ fontWeight: 900, fontSize: 16, color: "#fbbf24" }}>
-              Stock insuficiente
-            </div>
-            <div style={{ display: "grid", gap: 8 }}>
-              {stockWarning.items.map((it) => (
-                <div
-                  key={it.product_id}
-                  style={{
-                    border: "1px solid rgba(255,255,255,0.07)",
-                    borderRadius: 10,
-                    padding: "10px 12px",
-                    background: "#0f0f19",
-                    fontSize: 14,
-                  }}
-                >
-                  <div style={{ fontWeight: 900, marginBottom: 4 }}>{it.product_name}</div>
-                  <div style={{ color: "#8888a8", display: "flex", gap: 16, flexWrap: "wrap" }}>
-                    <span>Pedido: <b style={{ color: "#fff" }}>{it.requested}</b></span>
-                    <span>Disponible: <b style={{ color: it.available >= 0 ? "#34d399" : "#f87171" }}>{it.available}</b></span>
-                    <span>Faltan: <b style={{ color: "#f87171" }}>{it.missing}</b></span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <input
-              placeholder="¿De dónde se obtiene el stock? (opcional)"
-              value={forceNote}
-              onChange={(e) => setForceNote(e.target.value)}
-              style={{
-                width: "100%",
-                height: 44,
-                fontSize: 15,
-                borderRadius: 10,
-                border: "1px solid rgba(255,255,255,0.08)",
-                background: "#0f0f19",
-                color: "#fff",
-                padding: "0 12px",
-                outline: "none",
-                boxSizing: "border-box",
-              }}
-            />
-            <div style={{ display: "flex", gap: 10 }}>
-              <button
-                type="button"
-                onClick={() => setStockWarning(null)}
-                style={{
-                  flex: 1,
-                  height: 44,
-                  borderRadius: 10,
-                  border: "1px solid rgba(255,255,255,0.11)",
-                  background: "#0f0f19",
-                  color: "#fff",
-                  fontWeight: 800,
-                  fontSize: 14,
-                  cursor: "pointer",
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => { setStockWarning(null); submitSale(true); }}
-                style={{
-                  flex: 2,
-                  height: 44,
-                  borderRadius: 10,
-                  border: "none",
-                  background: "#6366f1",
-                  color: "#fff",
-                  fontWeight: 900,
-                  fontSize: 14,
-                  cursor: "pointer",
-                }}
-              >
-                Confirmar igual
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <SearchDropdown
-        inputRef={clientRef}
-        label="Cliente"
-        placeholder="Buscar cliente..."
-        items={clients}
-        getKey={(c) => c.id}
-        getLabel={(c) => c.name}
-        query={clientQuery}
-        setQuery={setClientQuery}
-        selected={selectedClient}
-        setSelected={(c) => setSelectedClient(c ? { id: c.id, name: c.name, price_list_id: c.price_list_id } : null)}
-      />
-
-      {selectedClient && clientBalance !== null && (
-        <div
-          style={{
-            border: "1px solid rgba(255,255,255,0.05)",
-            background: "#0f0f19",
-            borderRadius: 12,
-            padding: "10px 14px",
-            marginBottom: 10,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <span style={{ color: "#8888a8", fontSize: 13 }}>Saldo actual del cliente</span>
-          <span style={{ fontWeight: 900, fontSize: 15, color: Number(clientBalance) > 0 ? "#f87171" : "#34d399" }}>
-            ${Number(clientBalance).toFixed(2)}
-          </span>
-        </div>
-      )}
-
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 14, marginTop: 6 }}>
-        <h3 style={{ margin: "0 0 10px 0" }}>Agregar ítem</h3>
-
-        <SearchDropdown
-          inputRef={productRef}
-          label="Producto"
-          placeholder="Buscar producto..."
-          items={products}
-          getKey={(p) => p.id}
-          getLabel={(p) => p.name}
-          query={productQuery}
-          setQuery={setProductQuery}
-          selected={selectedProductObj}
-          setSelected={(p) => {
-            setSelectedProductObj(p || null);
-            if (p) {
-              const prices = p.prices || [];
-              let match = prices.find((pr) => pr.price_list_id === selectedClient?.price_list_id);
-              if (!match) {
-                match = prices.find((pr) => pr.price_list_name?.toLowerCase() === "general");
-              }
-              if (match) setPrice(String(match.price));
-              setTimeout(() => qtyRef.current?.focus(), 0);
-            }
-          }}
-        />
-
-        <input
-          ref={qtyRef}
-          inputMode="decimal"
-          placeholder="Cantidad"
-          style={{
-            width: "100%",
-            height: 48,
-            fontSize: 16,
-            marginBottom: 10,
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.08)",
-            background: "#13131e",
-            color: "#fff",
-            padding: "0 12px",
-            outline: "none",
-            boxSizing: "border-box",
-          }}
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              priceRef.current?.focus();
-            }
-          }}
-        />
-
-        <input
-          ref={priceRef}
-          inputMode="decimal"
-          placeholder="Precio unitario"
-          style={{
-            width: "100%",
-            height: 48,
-            fontSize: 16,
-            marginBottom: 10,
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.08)",
-            background: "#13131e",
-            color: "#fff",
-            padding: "0 12px",
-            outline: "none",
-            boxSizing: "border-box",
-          }}
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addItem();
-            }
-          }}
-        />
-
-        <input
-          placeholder="Nota del ítem (opcional)"
-          style={{
-            width: "100%",
-            height: 48,
-            fontSize: 16,
-            marginBottom: 10,
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.08)",
-            background: "#13131e",
-            color: "#fff",
-            padding: "0 12px",
-            outline: "none",
-            boxSizing: "border-box",
-          }}
-          value={itemNotes}
-          onChange={(e) => setItemNotes(e.target.value)}
-        />
-
-        <button
-          style={{
-            width: "100%",
-            height: 52,
-            fontSize: 16,
-            fontWeight: 800,
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.08)",
-            background: "#0f0f19",
-            color: "#fff",
-            boxSizing: "border-box",
-          }}
-          onClick={addItem}
-        >
-          + Agregar ítem
-        </button>
-      </div>
-
-      <div style={{ marginTop: 16 }}>
-        <h3 style={{ margin: "0 0 8px 0" }}>Items</h3>
-
-        {items.length === 0 ? (
-          <div style={{ color: "#7777a0" }}>Todavía no hay items.</div>
-        ) : (
-          <div
-            style={{
-              maxHeight: "38vh",
-              overflowY: "auto",
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-              border: "1px solid rgba(255,255,255,0.05)",
-              borderRadius: 14,
-              padding: 10,
-              background: "#0f0f19",
-              boxSizing: "border-box",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
-            }}
-          >
-            {items.map((it, idx) => (
-              <div
-                key={idx}
-                style={{
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: 12,
-                  padding: 12,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 10,
-                  background: "#13131e",
-                  boxSizing: "border-box",
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 800 }}>{it.name}</div>
-                  <div style={{ color: "#8888a8" }}>
-                    {it.quantity} × {it.unit_price} = ${(it.quantity * it.unit_price).toFixed(2)}
-                  </div>
-                  {it.notes && (
-                    <div style={{ color: "#666688", fontSize: 12, marginTop: 2 }}>{it.notes}</div>
-                  )}
-                </div>
-
-                <button
-                  style={{
-                    height: 40,
-                    minWidth: 90,
-                    borderRadius: 12,
-                    border: "1px solid rgba(255,255,255,0.11)",
-                    background: "#0f0f19",
-                    color: "#fff",
-                    fontWeight: 800,
-                  }}
-                  onClick={() => removeItem(idx)}
-                >
-                  Eliminar
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Barra inferior fija */}
-      <div
-        style={{
-          position: "fixed",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "#09091a",
-          borderTop: "1px solid rgba(255,255,255,0.05)",
-          paddingTop: 12,
-          paddingLeft: "calc(env(safe-area-inset-left, 0px) + 12px)",
-          paddingRight: "calc(env(safe-area-inset-right, 0px) + 12px)",
-          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
-          width: "100%",
-          boxSizing: "border-box",
-          overflowX: "hidden",
-        }}
-      >
-        <div style={{ maxWidth: 520, margin: "0 auto", display: "grid", gap: 10, color: "#fff" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900 }}>
-            <span>Total</span>
-            <span>${total.toFixed(2)}</span>
-          </div>
-
-          <input
-            placeholder="Nota de la venta (opcional)"
-            style={{
-              width: "100%",
-              height: 44,
-              fontSize: 15,
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.08)",
-              background: "#13131e",
-              color: "#fff",
-              padding: "0 12px",
-              outline: "none",
-              boxSizing: "border-box",
-            }}
-            value={saleNotes}
-            onChange={(e) => setSaleNotes(e.target.value)}
-          />
-
-          <input
-            ref={paymentRef}
-            inputMode="decimal"
-            placeholder="Pago inicial (opcional)"
-            style={{
-              width: "100%",
-              height: 48,
-              fontSize: 16,
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.08)",
-              background: "#13131e",
-              color: "#fff",
-              padding: "0 12px",
-              outline: "none",
-              boxSizing: "border-box",
-            }}
-            value={payment}
-            onChange={(e) => setPayment(e.target.value)}
-          />
-
-          <button
-            style={{
-              width: "100%",
-              height: 54,
-              fontSize: 16,
-              fontWeight: 900,
-              background: "#6366f1",
-              color: "#fff",
-              borderRadius: 12,
-              border: "none",
-              boxSizing: "border-box",
-            }}
-            onClick={submitSale}
-          >
-            CONFIRMAR VENTA
-          </button>
-        </div>
-      </div>
-    </>
+    <SaleScreen
+      theme={themes.dark}
+      clients={clients}
+      products={products}
+      pushToast={(type, msg) => pushToast(msg ?? type, msg ? type : "info")}
+      apiBase={API}
+      apiFetch={apiFetch}
+    />
   );
 }
 
@@ -3706,6 +3062,7 @@ function UsersScreen({ pushToast, currentUser }) {
 
 /** Pantalla: Login */
 function LoginScreen({ onLogin }) {
+  const t = themes.dark;
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -3715,8 +3072,8 @@ function LoginScreen({ onLogin }) {
 
   useEffect(() => {
     setTimeout(() => userRef.current?.focus(), 0);
-    document.documentElement.style.background = "#0c0c14";
-    document.body.style.background = "#0c0c14";
+    document.documentElement.style.background = t.page;
+    document.body.style.background = t.page;
     document.body.style.margin = "0";
   }, []);
 
@@ -3726,17 +3083,14 @@ function LoginScreen({ onLogin }) {
     setLoading(true);
     setError("");
     try {
-      // El estándar OAuth2 exige form data (no JSON) en el endpoint de token
       const form = new URLSearchParams();
       form.append("username", username.trim());
       form.append("password", password);
-
       const res = await fetch(`${API}/auth/token`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: form.toString(),
       });
-
       if (res.ok) {
         const data = await res.json();
         localStorage.setItem("auth_token", data.access_token);
@@ -3753,37 +3107,39 @@ function LoginScreen({ onLogin }) {
   };
 
   const inputStyle = {
-    width: "100%", height: 48, fontSize: 16, borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.08)", background: "#13131e", color: "#fff",
-    padding: "0 14px", outline: "none", boxSizing: "border-box",
+    width: "100%", height: 48, fontSize: 15, borderRadius: 12,
+    border: `1px solid ${t.borderStrong}`, background: t.surfaceSunk, color: t.text,
+    padding: "0 14px", outline: "none", boxSizing: "border-box", fontFamily: "inherit",
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100dvh", background: "#0c0c14", display: "flex",
-        alignItems: "center", justifyContent: "center",
-        paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)",
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
-        paddingLeft: "calc(env(safe-area-inset-left, 0px) + 16px)",
-        paddingRight: "calc(env(safe-area-inset-right, 0px) + 16px)",
-      }}
-    >
-      <form
-        onSubmit={submit}
-        style={{
-          width: "100%", maxWidth: 360, display: "grid", gap: 14,
-          border: "1px solid rgba(99,102,241,0.25)", borderRadius: 18, padding: 24, background: "#13131e",
-          boxShadow: "0 0 40px rgba(99,102,241,0.08), 0 8px 32px rgba(0,0,0,0.5)",
-          fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-        }}
-      >
-        <div style={{ fontWeight: 900, fontSize: 20, marginBottom: 4 }}>
-          Sistema de Ventas
+    <div style={{
+      minHeight: "100dvh", background: t.page, display: "flex",
+      alignItems: "center", justifyContent: "center",
+      fontFamily: '"Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+      padding: "16px",
+    }}>
+      <form onSubmit={submit} style={{
+        width: "100%", maxWidth: 360, display: "grid", gap: 16,
+        border: `1px solid ${t.border}`, borderRadius: 20, padding: 28,
+        background: t.surface,
+        boxShadow: "0 8px 40px rgba(0,0,0,0.4)",
+      }}>
+        {/* Logo + título */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: `linear-gradient(135deg, ${t.brand}, ${t.brandDeep})`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#fff",
+          }}><CartIcon size={20} /></div>
+          <div style={{ fontWeight: 700, fontSize: 20, color: t.text, letterSpacing: -0.4 }}>
+            SManager
+          </div>
         </div>
 
         <div>
-          <label style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#8888a8" }}>
+          <label style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600, color: t.text2 }}>
             Usuario
           </label>
           <input
@@ -3797,7 +3153,7 @@ function LoginScreen({ onLogin }) {
         </div>
 
         <div>
-          <label style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#8888a8" }}>
+          <label style={{ display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600, color: t.text2 }}>
             Contraseña
           </label>
           <div style={{ position: "relative" }}>
@@ -3813,18 +3169,9 @@ function LoginScreen({ onLogin }) {
               type="button"
               onClick={() => setShowPassword((v) => !v)}
               style={{
-                position: "absolute",
-                right: 0,
-                top: 0,
-                height: 48,
-                width: 48,
-                border: "none",
-                background: "transparent",
-                color: "#8888a8",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                position: "absolute", right: 0, top: 0, height: 48, width: 48,
+                border: "none", background: "transparent", color: t.text3,
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 16,
               }}
               tabIndex={-1}
@@ -3835,7 +3182,7 @@ function LoginScreen({ onLogin }) {
         </div>
 
         {error && (
-          <div style={{ color: "#f87171", fontSize: 14, fontWeight: 700 }}>{error}</div>
+          <div style={{ color: t.danger, fontSize: 14, fontWeight: 600 }}>{error}</div>
         )}
 
         <button
@@ -3843,8 +3190,11 @@ function LoginScreen({ onLogin }) {
           disabled={loading}
           style={{
             height: 48, borderRadius: 12, border: "none",
-            background: loading ? "#1a1a28" : "#6366f1", color: loading ? "#55556a" : "#fff",
-            fontWeight: 900, fontSize: 16, cursor: loading ? "default" : "pointer", marginTop: 4,
+            background: loading ? t.surface2 : t.brand,
+            color: loading ? t.text3 : "#fff",
+            fontWeight: 700, fontSize: 15, cursor: loading ? "default" : "pointer",
+            marginTop: 4, fontFamily: "inherit",
+            boxShadow: loading ? "none" : `0 8px 20px rgba(45,91,255,0.3)`,
           }}
         >
           {loading ? "Ingresando..." : "Ingresar"}
@@ -3883,91 +3233,71 @@ export default function App() {
 }
 
 function AppShell({ onLogout, currentUser }) {
+  // Pantalla inicial: arrancamos en "sale" (Nueva venta) por el rediseño.
+  // Si el usuario no tiene permiso, caemos a la primera disponible.
+  const NAV_KEYS = ["sale", "products", "client", "debtors", "stock", "users"];
   const [screen, setScreen] = useState(() => {
-    // Arrancar en la primera pantalla disponible según permisos
-    const all = Object.keys(SCREEN_LABELS);
-    return all.find((s) => canSee(currentUser, s)) ?? "sale";
+    if (canSee(currentUser, "sale")) return "sale";
+    return NAV_KEYS.find((s) => canSee(currentUser, s)) ?? "sale";
   });
+
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
   const [priceLists, setPriceLists] = useState([]);
-
-  // Toast state
   const [toasts, setToasts] = useState([]);
 
-  const removeToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
+  const theme = themes.dark;
 
+  const removeToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
   const pushToast = (message, type = "info", ms = 2200) => {
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     setToasts((prev) => [...prev, { id, message, type }]);
     window.setTimeout(() => removeToast(id), ms);
   };
 
-  const refreshClients = async () => {
-    const res = await apiFetch(`${API}/clients`);
-    const data = await res.json();
-    setClients(data);
-  };
+  const refreshClients    = async () => { const r = await apiFetch(`${API}/clients`);     setClients(await r.json()); };
+  const refreshProducts   = async () => { const r = await apiFetch(`${API}/products`);    setProducts(await r.json()); };
+  const refreshPriceLists = async () => { const r = await apiFetch(`${API}/price-lists`); setPriceLists(await r.json()); };
 
-  const refreshProducts = async () => {
-    const res = await apiFetch(`${API}/products`);
-    const data = await res.json();
-    setProducts(data);
-  };
-
-  const refreshPriceLists = async () => {
-    const res = await apiFetch(`${API}/price-lists`);
-    const data = await res.json();
-    setPriceLists(data);
-  };
-
-  // Evitar scroll horizontal (Safari iOS / overflow)
+  // Bloquear scroll horizontal (igual que antes)
   useEffect(() => {
     const prevHtml = document.documentElement.style.overflowX;
     const prevBody = document.body.style.overflowX;
-
     document.documentElement.style.overflowX = "hidden";
     document.body.style.overflowX = "hidden";
-
     return () => {
       document.documentElement.style.overflowX = prevHtml;
       document.body.style.overflowX = prevBody;
     };
   }, []);
 
+  // Reset scroll al cambiar de pantalla
   useEffect(() => {
-    // iOS Safari a veces queda con offset al cambiar pantallas
-    try {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollLeft = 0;
-      document.body.scrollLeft = 0;
-    } catch {}
+    try { window.scrollTo(0, 0); document.documentElement.scrollLeft = 0; document.body.scrollLeft = 0; } catch {}
   }, [screen]);
 
-  // Si el screen actual quedó sin permiso (ej: admin cambió permisos del rol),
-  // redirigir a la primera pantalla disponible
+  // Si el screen actual quedó sin permiso, saltar al primero disponible.
   useEffect(() => {
     if (!canSee(currentUser, screen)) {
-      const first = Object.keys(SCREEN_LABELS).find((s) => canSee(currentUser, s));
+      const first = NAV_KEYS.find((s) => canSee(currentUser, s));
       if (first) setScreen(first);
     }
   }, [screen, currentUser]);
 
+  // Fondo de la página acorde al tema
   useEffect(() => {
     const prevBgHtml = document.documentElement.style.background;
     const prevBgBody = document.body.style.background;
     const prevMargin = document.body.style.margin;
-
-    document.documentElement.style.background = "#0c0c14";
-    document.body.style.background = "#0c0c14";
+    document.documentElement.style.background = theme.page;
+    document.body.style.background = theme.page;
     document.body.style.margin = "0";
-
     return () => {
       document.documentElement.style.background = prevBgHtml;
       document.body.style.background = prevBgBody;
       document.body.style.margin = prevMargin;
     };
-  }, []);
+  }, [theme.page]);
 
   useEffect(() => {
     refreshClients();
@@ -3979,43 +3309,19 @@ function AppShell({ onLogout, currentUser }) {
   return (
     <>
       <ToastHost toasts={toasts} removeToast={removeToast} />
-
-      <div
-        style={{
-          minHeight: "100dvh",
-          background: "#0c0c14",
-          display: "flex",
-          justifyContent: "center",
-          overflowX: "hidden",
-          width: "100%",
-        }}
+      <NewShell
+        theme={theme}
+        screen={screen}
+        setScreen={setScreen}
+        currentUser={currentUser}
+        onLogout={onLogout}
       >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 520,
-          /* Padding lateral incluye safe area para notch/Dynamic Island lateral */
-          paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)",
-          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 220px)",
-          paddingLeft: "calc(env(safe-area-inset-left, 0px) + 16px)",
-          paddingRight: "calc(env(safe-area-inset-right, 0px) + 16px)",
-          color: "#fff",
-          boxSizing: "border-box",
-          overflowX: "hidden",
-          fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-        }}
-      >
-        <NavBar screen={screen} setScreen={setScreen} onLogout={onLogout} currentUser={currentUser} />
-
         {screen === "sale" ? (
           <NewSaleScreen clients={clients} products={products} pushToast={pushToast} />
         ) : screen === "client" ? (
           <ClientScreen
-            clients={clients}
-            products={products}
-            priceLists={priceLists}
-            pushToast={pushToast}
-            onClientCreated={refreshClients}
+            clients={clients} products={products} priceLists={priceLists}
+            pushToast={pushToast} onClientCreated={refreshClients}
           />
         ) : screen === "debtors" ? (
           <DebtorsScreen pushToast={pushToast} />
@@ -4025,15 +3331,13 @@ function AppShell({ onLogout, currentUser }) {
           <UsersScreen pushToast={pushToast} currentUser={currentUser} />
         ) : (
           <ProductsScreen
-            products={products}
-            priceLists={priceLists}
+            products={products} priceLists={priceLists}
             pushToast={pushToast}
             onProductCreated={refreshProducts}
             onPriceListCreated={refreshPriceLists}
           />
         )}
-      </div>
-      </div>
+      </NewShell>
     </>
   );
 }

@@ -98,19 +98,23 @@ def create_sale(
         ))
 
     paid = Decimal("0.00")
-    if payload.initial_payment_amount is not None:
-        if payload.initial_payment_amount < 0:
-            raise HTTPException(status_code=400, detail="initial_payment_amount debe ser >= 0")
+    if payload.initial_payment_amount is not None and payload.initial_payment_amount > 0:
         if payload.initial_payment_amount > total:
             raise HTTPException(status_code=400, detail="El pago inicial no puede ser mayor al total.")
         paid = payload.initial_payment_amount
 
+        is_partial = paid < total
+        method_str = f" {payload.initial_payment_method}" if payload.initial_payment_method else ""
+        payment_notes = (
+            f"Pago parcial Venta #{sale.id}{method_str}" if is_partial
+            else f"Pago completo Venta #{sale.id}{method_str}"
+        )
         db.add(Payment(
             client_id=sale.client_id,
             sale_id=sale.id,
             payment_date=datetime.now(AR_TZ),
             amount=paid,
-            notes="Pago inicial"
+            notes=payment_notes
         ))
 
     db.commit()

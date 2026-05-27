@@ -89,6 +89,7 @@ class SaleCreate(BaseModel):
     notes: Optional[str] = Field(default=None, max_length=500)
     items: List[SaleItemCreate]
     initial_payment_amount: Optional[Decimal] = None
+    initial_payment_method: Optional[str] = Field(default=None, max_length=80)
 
     @field_validator("sale_date")
     @classmethod
