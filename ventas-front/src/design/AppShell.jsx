@@ -144,8 +144,8 @@ function BottomNav({ theme, screen, setScreen, currentUser }) {
             background: 'none', border: 'none', cursor: 'pointer',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
             color: a ? theme.brand : theme.text3,
-            padding: '6px 14px', minWidth: 64, position: 'relative',
-            fontFamily: FONT_UI,
+            padding: '6px 4px', flex: 1, minWidth: 0, position: 'relative',
+            overflow: 'hidden', fontFamily: FONT_UI,
           }}>
             {a && (
               <div style={{
@@ -154,7 +154,7 @@ function BottomNav({ theme, screen, setScreen, currentUser }) {
               }} />
             )}
             <Ic size={24} />
-            <span style={{ fontSize: 11, fontWeight: 600 }}>{it.label}</span>
+            <span style={{ fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{it.label}</span>
           </button>
         );
       })}

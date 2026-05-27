@@ -89,7 +89,7 @@ function ToastHost({ toasts, removeToast }) {
         <div
           key={t.id}
           style={{
-            width: "min(520px, 100%)",
+            width: "min(520px, calc(100vw - 24px))",
             borderRadius: 14,
             border: "1px solid #1F2A4A",
             background: "#0A1124",
@@ -529,7 +529,7 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
     >
       <div
         style={{
-          width: "100%", maxWidth: 480, background: "#121A33",
+          width: "100%", maxWidth: "min(calc(100vw - 24px), 480px)", background: "#121A33",
           borderRadius: 18, border: "1px solid #1F2A4A",
           boxShadow: "0 8px 40px rgba(0,0,0,0.6)", padding: 20,
           display: "grid", gap: 14, marginTop: 16,
@@ -3210,7 +3210,7 @@ function LoginScreen({ onLogin }) {
     }}>
       <form onSubmit={submit} style={{
         width: "100%", maxWidth: 360, display: "grid", gap: 16,
-        border: `1px solid ${t.border}`, borderRadius: 20, padding: 28,
+        border: `1px solid ${t.border}`, borderRadius: 20, padding: "clamp(16px, 5.5vw, 28px)",
         background: t.surface,
         boxShadow: "0 8px 40px rgba(0,0,0,0.4)",
       }}>
