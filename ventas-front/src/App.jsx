@@ -632,6 +632,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
   // UI pago general
   const [payAmount, setPayAmount] = useState("");
   const [payNotes, setPayNotes] = useState("");
+  const [payDate, setPayDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [paySubmitting, setPaySubmitting] = useState(false);
 
   // Edición inline de pagos
@@ -824,7 +825,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount,
-          payment_date: null, // ahora
+          payment_date: new Date(payDate + 'T12:00:00').toISOString(),
           notes: payNotes?.trim() ? payNotes.trim() : null,
         }),
       });
@@ -836,6 +837,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
 
       setPayAmount("");
       setPayNotes("");
+      setPayDate(new Date().toISOString().slice(0, 10));
 
       // refresco saldo (statement)
       const st = await fetchStatement(selectedClient.id);
@@ -1139,78 +1141,6 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
             </div>
           </div>
 
-          {/* Registrar pago (siempre visible) */}
-          <div
-            style={{
-              border: "1px solid #1F2A4A",
-              background: "#0A1124",
-              borderRadius: 14,
-              padding: 14,
-              display: "grid",
-              gap: 10,
-              boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
-            }}
-          >
-            <div style={{ fontWeight: 900, fontSize: 13, color: "#6E7A98", letterSpacing: 1, textTransform: "uppercase" }}>
-              Registrar pago
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
-              <input
-                inputMode="decimal"
-                placeholder="Monto"
-                style={{
-                  height: 48,
-                  fontSize: 16,
-                  borderRadius: 12,
-                  border: "1px solid #1F2A4A",
-                  background: "#121A33",
-                  color: "#fff",
-                  padding: "0 12px",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-                value={payAmount}
-                onChange={(e) => setPayAmount(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") submitGeneralPayment(); }}
-              />
-              <input
-                placeholder="Notas (opcional)"
-                style={{
-                  height: 48,
-                  fontSize: 16,
-                  borderRadius: 12,
-                  border: "1px solid #1F2A4A",
-                  background: "#121A33",
-                  color: "#fff",
-                  padding: "0 12px",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-                value={payNotes}
-                onChange={(e) => setPayNotes(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") submitGeneralPayment(); }}
-              />
-            </div>
-            <button
-              type="button"
-              disabled={paySubmitting}
-              style={{
-                height: 48,
-                borderRadius: 12,
-                border: "none",
-                background: paySubmitting ? "#3b3b8a" : "#5C82FF",
-                color: "#fff",
-                fontWeight: 900,
-                fontSize: 15,
-                opacity: paySubmitting ? 0.7 : 1,
-                cursor: paySubmitting ? "not-allowed" : "pointer",
-              }}
-              onClick={submitGeneralPayment}
-            >
-              {paySubmitting ? "Registrando..." : "Confirmar pago"}
-            </button>
-          </div>
-
           {/* Tabs historial */}
           <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 8 }}>
             <button
@@ -1260,6 +1190,49 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
             >
               Exportar entregas
             </button>
+          )}
+          {clientView === "payments" && (
+            <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 10, boxShadow: "0 2px 12px rgba(0,0,0,0.25)" }}>
+              <div style={{ fontWeight: 900, fontSize: 13, color: "#6E7A98", letterSpacing: 1, textTransform: "uppercase" }}>
+                Registrar pago
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
+                <input
+                  inputMode="decimal"
+                  placeholder="Monto"
+                  style={{ height: 48, fontSize: 16, borderRadius: 12, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
+                  value={payAmount}
+                  onChange={(e) => setPayAmount(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") submitGeneralPayment(); }}
+                />
+                <input
+                  placeholder="Notas (opcional)"
+                  style={{ height: 48, fontSize: 16, borderRadius: 12, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
+                  value={payNotes}
+                  onChange={(e) => setPayNotes(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") submitGeneralPayment(); }}
+                />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#6E7A98" }}>Fecha</span>
+                <input
+                  type="date"
+                  lang="en-GB"
+                  value={payDate}
+                  max={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => setPayDate(e.target.value)}
+                  style={{ height: 40, fontSize: 14, borderRadius: 10, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 10px", outline: "none", cursor: "pointer", fontFamily: "inherit" }}
+                />
+              </div>
+              <button
+                type="button"
+                disabled={paySubmitting}
+                style={{ height: 48, borderRadius: 12, border: "none", background: paySubmitting ? "#3b3b8a" : "#5C82FF", color: "#fff", fontWeight: 900, fontSize: 15, opacity: paySubmitting ? 0.7 : 1, cursor: paySubmitting ? "not-allowed" : "pointer" }}
+                onClick={submitGeneralPayment}
+              >
+                {paySubmitting ? "Registrando..." : "Confirmar pago"}
+              </button>
+            </div>
           )}
           {clientView === "payments" && paymentsData.length > 0 && (
             <button
