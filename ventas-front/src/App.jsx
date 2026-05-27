@@ -1247,6 +1247,34 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
             </button>
           </div>
 
+          {/* Exportar — visible solo cuando hay datos en la tab activa */}
+          {clientView === "deliveries" && deliveriesBySale.length > 0 && (
+            <button
+              type="button"
+              onClick={() => copyToClipboard(buildDeliveriesText())}
+              style={{
+                width: "100%", height: 44, borderRadius: 10,
+                border: "1px solid rgba(255,255,255,0.08)",
+                background: "#0f0f19", color: "#fff", fontWeight: 900, fontSize: 14, cursor: "pointer",
+              }}
+            >
+              Exportar entregas
+            </button>
+          )}
+          {clientView === "payments" && paymentsData.length > 0 && (
+            <button
+              type="button"
+              onClick={() => copyToClipboard(buildPaymentsText())}
+              style={{
+                width: "100%", height: 44, borderRadius: 10,
+                border: "1px solid rgba(255,255,255,0.08)",
+                background: "#0f0f19", color: "#fff", fontWeight: 900, fontSize: 14, cursor: "pointer",
+              }}
+            >
+              Exportar pagos
+            </button>
+          )}
+
           {/* ===== Entregas ===== */}
           {clientView === "deliveries" ? (
             <div
@@ -1414,23 +1442,6 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                     </button>
                   ) : null}
 
-                  {/* Exportar (debajo) */}
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(buildDeliveriesText())}
-                    style={{
-                      width: "100%",
-                      height: 48,
-                      borderRadius: 12,
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      background: "#0f0f19",
-                      color: "#fff",
-                      fontWeight: 900,
-                      marginTop: 10,
-                    }}
-                  >
-                    Exportar entregas
-                  </button>
                 </>
               ) : (
                 <div style={{ color: "#7777a0" }}>No hay entregas registradas.</div>
@@ -1592,14 +1603,6 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                     ))}
                   </div>
 
-                  {/* Botón export debajo de la lista */}
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(buildPaymentsText())}
-                    style={exportBtnStyle}
-                  >
-                    Exportar pagos
-                  </button>
                 </>
               ) : (
                 <div style={{ color: "#7777a0" }}>No hay pagos registrados.</div>

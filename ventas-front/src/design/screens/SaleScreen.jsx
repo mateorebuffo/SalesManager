@@ -27,6 +27,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
   const [payMethod, setPayMethod] = useState('cash');
   const [parcial, setParcial] = useState(false);
   const [parcialAmount, setParcialAmount] = useState('');
+  const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [sheet, setSheet] = useState(null);      // 'client' | 'product' | null
   const [query, setQuery] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -77,7 +78,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
     try {
       const payload = {
         client_id: client.id,
-        sale_date: new Date().toISOString(),
+        sale_date: new Date(saleDate + 'T12:00:00').toISOString(),
         notes: null,
         items: lines.map(l => ({
           product_id: l.p.id,
@@ -124,6 +125,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
       setPayMethod('cash');
       setParcial(false);
       setParcialAmount('');
+      setSaleDate(new Date().toISOString().slice(0, 10));
     } catch (e) {
       pushToast?.('error', e.message || 'No se pudo registrar la venta');
     } finally {
@@ -149,11 +151,24 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
       }}>
         <div>
-          <div style={{ fontSize: 13, color: theme.text2, fontWeight: 500 }}>
-            {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </div>
-          <div style={{ fontWeight: 700, fontSize: desktop ? 24 : 26, color: theme.text, letterSpacing: -0.5, marginTop: 2 }}>
+          <div style={{ fontWeight: 700, fontSize: desktop ? 24 : 26, color: theme.text, letterSpacing: -0.5, marginBottom: 6 }}>
             Nueva venta
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: theme.text2 }}>Fecha</span>
+            <input
+              type="date"
+              lang="en-GB"
+              value={saleDate}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={e => setSaleDate(e.target.value)}
+              style={{
+                background: theme.surfaceSunk, border: `1px solid ${theme.border}`,
+                borderRadius: 8, color: theme.text, fontSize: 13, fontWeight: 500,
+                padding: '5px 10px', outline: 'none', cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            />
           </div>
         </div>
         <button style={iconBtnStyle(theme)} title="Historial"><Receipt size={20}/></button>
