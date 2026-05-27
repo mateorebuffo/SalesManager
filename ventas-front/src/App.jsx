@@ -140,7 +140,7 @@ function SearchDropdown({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return [];
+    if (!q) return items.slice(0, maxResults);
     return items
       .filter((it) => getLabel(it).toLowerCase().includes(q))
       .slice(0, maxResults);
@@ -266,7 +266,7 @@ function SearchDropdown({
             )}
           </div>
 
-          {open && query.trim() !== "" && (
+          {open && (
             <div
               style={{
                 position: "absolute",
