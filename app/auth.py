@@ -20,11 +20,11 @@ from fastapi.security import OAuth2PasswordBearer
 load_dotenv()
 
 SECRET_KEY = os.environ["SECRET_KEY"]
-if len(SECRET_KEY) < 32:
-    raise RuntimeError("SECRET_KEY debe tener al menos 32 caracteres.")
+if len(SECRET_KEY) < 64:
+    raise RuntimeError("SECRET_KEY debe tener al menos 64 caracteres.")
 
 ALGORITHM = "HS256"
-TOKEN_EXPIRE_HOURS = 12
+TOKEN_EXPIRE_HOURS = 2
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 

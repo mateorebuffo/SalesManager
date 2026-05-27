@@ -14,7 +14,9 @@ if not DATABASE_URL:
 if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
-engine = create_engine(DATABASE_URL, echo=False, connect_args={"sslmode": "disable"})
+_is_local_db = any(h in DATABASE_URL for h in ["localhost", "127.0.0.1"])
+_ssl_mode = "disable" if _is_local_db else "require"
+engine = create_engine(DATABASE_URL, echo=False, connect_args={"sslmode": _ssl_mode})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

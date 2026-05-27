@@ -101,11 +101,13 @@ def health():
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 _prod_origin = os.getenv("ALLOWED_ORIGIN", "").strip()
+_is_prod = os.getenv("ENVIRONMENT") == "production"
+_local_origin_regex = None if _is_prod else r"^https?://(localhost|127\.0\.0\.1)(:\d{1,5})?$"
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[_prod_origin] if _prod_origin else [],
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|192\.168\.0\.\d{1,3})(:\d{1,5})?$",
+    allow_origin_regex=_local_origin_regex,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Content-Type", "Authorization"],
