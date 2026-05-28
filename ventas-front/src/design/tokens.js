@@ -82,8 +82,8 @@ export const hexToSoft = (hex) => {
 
 // Payment methods used across the app.
 export const PAYMENT_METHODS = [
+  { id: 'credit',   label: 'Cuenta corriente'},
+  { id: 'crypto',   label: 'USDT / Cripto'   },
   { id: 'cash',     label: 'Efectivo'        },
   { id: 'transfer', label: 'Transferencia'   },
-  { id: 'crypto',   label: 'Cripto'          },
-  { id: 'credit',   label: 'Cuenta corriente'},
 ];

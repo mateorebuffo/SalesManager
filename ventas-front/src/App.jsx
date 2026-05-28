@@ -413,10 +413,10 @@ function NotesCombo({ value, onChange, onKeyDown, placeholder, inputStyle }) {
 
 /** Pantalla: Cliente (Saldo + acciones) */
 const PAY_METHODS_EDIT = [
+  { id: "credit",   label: "Cuenta corriente" },
+  { id: "crypto",   label: "USDT / Cripto"    },
   { id: "cash",     label: "Efectivo"         },
   { id: "transfer", label: "Transferencia"    },
-  { id: "crypto",   label: "Cripto"           },
-  { id: "credit",   label: "Cuenta corriente" },
 ];
 
 function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
