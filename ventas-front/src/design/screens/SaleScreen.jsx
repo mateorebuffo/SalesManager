@@ -190,7 +190,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
       if (Number(parcialAmounts.transfer) > 0)
         parts.push(`• Transferencia: $${Number(parcialAmounts.transfer).toFixed(2)}`);
       if (parcialRemainder > 0)
-        parts.push(`• Cuenta corriente: $${parcialRemainder.toFixed(2)}`);
+        parts.push(`• RESTANTE: $${parcialRemainder.toFixed(2)}`);
       payLines = parts.join('\n');
     } else {
       const label = PAYMENT_METHODS.find(m => m.id === payMethod)?.label ?? payMethod;
