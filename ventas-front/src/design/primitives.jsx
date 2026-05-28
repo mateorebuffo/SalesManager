@@ -258,20 +258,41 @@ export function useIsDesktop(breakpoint = 900) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// BottomSheet — mobile modal that slides up from bottom
+// BottomSheet — mobile modal that slides up from bottom.
+// Tracks window.visualViewport so it rises above the iOS keyboard.
 // ─────────────────────────────────────────────────────────────
 export function BottomSheet({ theme, open, onClose, title, children }) {
+  const [kb, setKb] = useState(0);
+
+  useEffect(() => {
+    if (!open) { setKb(0); return; }
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () =>
+      setKb(Math.max(0, window.innerHeight - vv.height - vv.offsetTop));
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, [open]);
+
   if (!open) return null;
   return (
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 200,
+      position: 'fixed', top: 0, left: 0, right: 0,
+      bottom: kb,  // shrinks overlay so it ends just above the keyboard
+      zIndex: 200,
       background: theme.overlay, display: 'flex', alignItems: 'flex-end',
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
         width: '100%', background: theme.surface,
         borderTopLeftRadius: 22, borderTopRightRadius: 22,
-        maxHeight: '85vh', display: 'flex', flexDirection: 'column',
-        paddingBottom: 'env(safe-area-inset-bottom, 24px)',
+        maxHeight: '85%',  // 85% of the overlay (which already excludes keyboard)
+        display: 'flex', flexDirection: 'column',
+        paddingBottom: kb > 0 ? 8 : 'env(safe-area-inset-bottom, 24px)',
         boxShadow: '0 -10px 30px rgba(0,0,0,0.25)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 6px' }}>
@@ -283,7 +304,7 @@ export function BottomSheet({ theme, open, onClose, title, children }) {
             <button onClick={onClose} style={iconBtnStyle(theme)}><X size={20}/></button>
           </div>
         )}
-        <div style={{ flex: 1, overflow: 'auto' }}>{children}</div>
+        <div style={{ flex: 1, overflowY: 'auto' }}>{children}</div>
       </div>
     </div>
   );
