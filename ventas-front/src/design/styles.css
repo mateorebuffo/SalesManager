@@ -11,6 +11,16 @@
   box-shadow: 0 0 0 3px rgba(45,91,255,0.15);
 }
 
+/* Date input: calendar picker icon in white */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+  opacity: 0.7;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
 /* Hide scrollbars on horizontal chip rows (Productos categorías, etc.) */
 .caja-no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 .caja-no-scrollbar::-webkit-scrollbar { display: none; }
