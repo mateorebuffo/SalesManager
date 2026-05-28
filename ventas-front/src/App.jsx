@@ -351,6 +351,66 @@ function formatArDate(iso) {
   }).format(d);
 }
 
+const PAY_NOTE_PRESETS = [
+  "USD FISICO",
+  "USDT / CRIPTO",
+  "TRANSFERENCIA PESOS",
+  "PESOS FISICO",
+];
+
+function NotesCombo({ value, onChange, onKeyDown, placeholder, inputStyle }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  const filtered = PAY_NOTE_PRESETS.filter(
+    (p) => !value.trim() || p.toLowerCase().includes(value.toLowerCase())
+  );
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (!containerRef.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={containerRef} style={{ position: "relative" }}>
+      <input
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={onKeyDown}
+        style={inputStyle}
+      />
+      {open && filtered.length > 0 && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+          background: "#0A1124", border: "1px solid #1F2A4A", borderRadius: 10,
+          zIndex: 100, boxShadow: "0 4px 20px rgba(0,0,0,0.5)", overflow: "hidden",
+        }}>
+          {filtered.map((p, i) => (
+            <button
+              key={p}
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); onChange(p); setOpen(false); }}
+              style={{
+                width: "100%", textAlign: "left", padding: "11px 14px",
+                background: "transparent", border: "none",
+                borderBottom: i < filtered.length - 1 ? "1px solid #1F2A4A" : "none",
+                color: "#fff", fontSize: 14, cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Pantalla: Cliente (Saldo + acciones) */
 const PAY_METHODS_EDIT = [
   { id: "cash",     label: "Efectivo"         },
@@ -1303,11 +1363,11 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                   onChange={(e) => setPayAmount(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") submitGeneralPayment(); }}
                 />
-                <input
+                <NotesCombo
                   placeholder="Notas (opcional)"
-                  style={{ height: 48, fontSize: 16, borderRadius: 12, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
+                  inputStyle={{ width: "100%", height: 48, fontSize: 16, borderRadius: 12, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
                   value={payNotes}
-                  onChange={(e) => setPayNotes(e.target.value)}
+                  onChange={setPayNotes}
                   onKeyDown={(e) => { if (e.key === "Enter") submitGeneralPayment(); }}
                 />
               </div>
@@ -1601,15 +1661,15 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                                 color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box",
                               }}
                             />
-                            <input
+                            <NotesCombo
                               placeholder="Notas (opcional)"
-                              value={editPayNotes}
-                              onChange={(e) => setEditPayNotes(e.target.value)}
-                              style={{
-                                height: 42, fontSize: 15, borderRadius: 10,
+                              inputStyle={{
+                                width: "100%", height: 42, fontSize: 15, borderRadius: 10,
                                 border: "1px solid #1F2A4A", background: "#0A1124",
                                 color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box",
                               }}
+                              value={editPayNotes}
+                              onChange={setEditPayNotes}
                             />
                             <button
                               type="button"
