@@ -169,6 +169,56 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
     !query || p.name?.toLowerCase().includes(query.toLowerCase())
   );
 
+  function buildPresupuesto() {
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    const productLines = lines
+      .map(l => {
+        const up = linePrice(l);
+        return `• ${l.p.name} — $${up.toFixed(2)} c/u × ${l.q} = $${(up * l.q).toFixed(2)}`;
+      })
+      .join('\n');
+    let payLines;
+    if (parcial) {
+      const parts = [];
+      if (Number(parcialAmounts.crypto) > 0)
+        parts.push(`• USDT / Cripto: $${Number(parcialAmounts.crypto).toFixed(2)}`);
+      if (Number(parcialAmounts.cash) > 0)
+        parts.push(`• Efectivo: $${Number(parcialAmounts.cash).toFixed(2)}`);
+      if (Number(parcialAmounts.transfer) > 0)
+        parts.push(`• Transferencia: $${Number(parcialAmounts.transfer).toFixed(2)}`);
+      if (parcialRemainder > 0)
+        parts.push(`• Cuenta corriente: $${parcialRemainder.toFixed(2)}`);
+      payLines = parts.join('\n');
+    } else {
+      const label = PAYMENT_METHODS.find(m => m.id === payMethod)?.label ?? payMethod;
+      payLines = `• ${label}`;
+    }
+    return [
+      `🧾 PRESUPUESTO — ${dd}/${mm}/${yyyy}`,
+      `👤 Cliente: ${client?.name ?? 'Sin cliente'}`,
+      ``,
+      `📦 Productos:`,
+      productLines,
+      ``,
+      `💰 Total: $${total.toFixed(2)}`,
+      ``,
+      `💳 Forma de pago:`,
+      payLines,
+    ].join('\n');
+  }
+
+  async function copyPresupuesto() {
+    try {
+      await navigator.clipboard.writeText(buildPresupuesto());
+      pushToast?.('success', '¡Presupuesto copiado!');
+    } catch {
+      pushToast?.('error', 'No se pudo copiar al portapapeles');
+    }
+  }
+
   // Shared body: Cliente · Productos (with dropdown) · Cart · Total · Pago · Confirmar
   const body = (
     <>
@@ -370,9 +420,27 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
       </div>
 
       {/* Confirm */}
-      <div style={{ padding: '16px 16px 24px' }}>
+      <div style={{ padding: '16px 16px 24px', display: 'flex', gap: 10 }}>
+        <button
+          onClick={copyPresupuesto}
+          disabled={lines.length === 0}
+          style={{
+            flexShrink: 0, padding: '16px 18px', borderRadius: 16,
+            background: theme.surface2, color: theme.text,
+            border: `1px solid ${theme.border}`,
+            fontWeight: 600, fontSize: 14, fontFamily: FONT_UI,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+            cursor: lines.length === 0 ? 'default' : 'pointer',
+            opacity: lines.length === 0 ? 0.4 : 1,
+            transition: 'opacity .15s',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <Receipt size={18} />
+          Armar presupuesto
+        </button>
         <button onClick={submit} disabled={submitting || lines.length === 0} style={{
-          width: '100%', padding: '16px', borderRadius: 16,
+          flex: 1, padding: '16px', borderRadius: 16,
           background: theme.brand, color: '#fff', border: 'none',
           fontWeight: 700, fontSize: 16, fontFamily: FONT_UI,
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
