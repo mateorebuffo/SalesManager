@@ -31,7 +31,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
   const [cart, setCart] = useState([]);          // [{ productId, q }]
   const [payMethod, setPayMethod] = useState('credit');
   const [parcial, setParcial] = useState(false);
-  const [parcialAmount, setParcialAmount] = useState('');
+  const [parcialAmounts, setParcialAmounts] = useState({ crypto: '', cash: '', transfer: '' });
   const [saleDate, setSaleDate] = useState(() => localToday());
   const [sheet, setSheet] = useState(null);      // 'client' | 'product' | null
   const [query, setQuery] = useState('');
@@ -63,6 +63,11 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
   const total = lines.reduce((s, l) => s + linePrice(l) * l.q, 0);
   const count = lines.reduce((s, l) => s + l.q, 0);
 
+  const parcialPaid = parcial
+    ? (Number(parcialAmounts.crypto) || 0) + (Number(parcialAmounts.cash) || 0) + (Number(parcialAmounts.transfer) || 0)
+    : 0;
+  const parcialRemainder = parcial ? Math.max(0, total - parcialPaid) : 0;
+
   const addProduct = (p) => {
     setCart(prev => {
       const i = prev.find(x => x.productId === p.id);
@@ -82,11 +87,20 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
   async function submit(force = false) {
     if (lines.length === 0) return;
     if (!client) { pushToast?.('error', 'Seleccioná un cliente'); return; }
-    if (parcial && payMethod !== 'credit' && !(Number(parcialAmount) > 0)) {
-      pushToast?.('error', 'Ingresá el monto del pago parcial'); return;
+    if (parcial && parcialPaid > total + 0.001) {
+      pushToast?.('error', `Los pagos parciales ($${parcialPaid.toFixed(2)}) superan el total`); return;
     }
     setSubmitting(true);
     try {
+      // Build multi-method notes for parcial payments
+      const parcialNotesParts = [];
+      if (parcial && Number(parcialAmounts.crypto) > 0)
+        parcialNotesParts.push(`USDT / CRIPTO = $${Number(parcialAmounts.crypto).toFixed(2)}`);
+      if (parcial && Number(parcialAmounts.cash) > 0)
+        parcialNotesParts.push(`EFECTIVO = $${Number(parcialAmounts.cash).toFixed(2)}`);
+      if (parcial && Number(parcialAmounts.transfer) > 0)
+        parcialNotesParts.push(`TRANSFERENCIA = $${Number(parcialAmounts.transfer).toFixed(2)}`);
+
       const payload = {
         client_id: client.id,
         sale_date: saleDate === localToday()
@@ -99,14 +113,15 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
           unit_price: linePrice(l),
           notes: null,
         })),
-        initial_payment_amount: payMethod === 'credit'
-          ? 0
-          : parcial
-            ? (Number(parcialAmount) || 0)
-            : total,
-        initial_payment_method: payMethod === 'credit'
+        initial_payment_amount: parcial
+          ? (parcialPaid > 0 ? parcialPaid : 0)
+          : (payMethod === 'credit' ? 0 : total),
+        initial_payment_method: parcial
           ? null
-          : (PAYMENT_METHODS.find(m => m.id === payMethod)?.label ?? null),
+          : (payMethod === 'credit' ? null : (PAYMENT_METHODS.find(m => m.id === payMethod)?.label ?? null)),
+        ...(parcial && parcialNotesParts.length > 0
+          ? { initial_payment_notes: parcialNotesParts.join('\n') }
+          : {}),
       };
       const url = force ? `${apiBase}/sales?force=true` : `${apiBase}/sales`;
       const res = await apiFetch(url, {
@@ -136,7 +151,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
       setClient(null);
       setPayMethod('credit');
       setParcial(false);
-      setParcialAmount('');
+      setParcialAmounts({ crypto: '', cash: '', transfer: '' });
       setSaleDate(localToday());
     } catch (e) {
       pushToast?.('error', e.message || 'No se pudo registrar la venta');
@@ -272,20 +287,52 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
       <SectionHeader theme={theme} title="Método de pago" />
       <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {PAYMENT_METHODS.map((p) => (
-          <PayMethodButton key={p.id} theme={theme}
-            icon={ICONS_BY_PAY[p.id] || Cash}
-            label={p.label}
-            active={payMethod === p.id}
-            onClick={() => {
-              setPayMethod(p.id);
-              if (p.id === 'credit') { setParcial(false); setParcialAmount(''); }
-            }}
-          />
+          <div key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <PayMethodButton theme={theme}
+              icon={ICONS_BY_PAY[p.id] || Cash}
+              label={p.label}
+              active={parcial
+                ? (p.id !== 'credit' && Number(parcialAmounts[p.id] || 0) > 0)
+                : payMethod === p.id}
+              onClick={() => {
+                if (parcial) return;
+                setPayMethod(p.id);
+                if (p.id === 'credit') setParcialAmounts({ crypto: '', cash: '', transfer: '' });
+              }}
+            />
+            {/* Parcial: input de monto por método (excepto CC que muestra el saldo) */}
+            {parcial && p.id !== 'credit' && (
+              <input
+                inputMode="decimal"
+                placeholder="$ 0.00"
+                value={parcialAmounts[p.id] || ''}
+                onChange={(e) => setParcialAmounts(prev => ({ ...prev, [p.id]: e.target.value }))}
+                style={{
+                  height: 40, fontSize: 15, width: '100%',
+                  borderRadius: 10, border: `1px solid ${theme.borderStrong}`,
+                  background: theme.surfaceSunk, color: theme.text,
+                  padding: '0 12px', outline: 'none', boxSizing: 'border-box',
+                  fontFamily: FONT_MONO,
+                }}
+              />
+            )}
+            {parcial && p.id === 'credit' && (
+              <div style={{
+                height: 40, display: 'flex', alignItems: 'center', padding: '0 12px',
+                borderRadius: 10, boxSizing: 'border-box',
+                background: parcialRemainder > 0.009 ? 'rgba(248,113,113,0.12)' : 'rgba(52,211,153,0.12)',
+                color: parcialRemainder > 0.009 ? '#f87171' : '#34d399',
+                fontSize: 13, fontWeight: 700, fontFamily: FONT_MONO,
+              }}>
+                Saldo: {money(parcialRemainder)}
+              </div>
+            )}
+          </div>
         ))}
       </div>
 
       {/* Pago parcial */}
-      <div style={{ padding: '10px 16px 0', display: 'grid', gap: 10 }}>
+      <div style={{ padding: '10px 16px 0' }}>
         <label style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '14px 16px', borderRadius: 14,
@@ -315,29 +362,11 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
             onChange={(e) => {
               const checked = e.target.checked;
               setParcial(checked);
-              if (!checked) setParcialAmount('');
-              if (checked && payMethod === 'credit') setPayMethod('cash');
+              if (!checked) setParcialAmounts({ crypto: '', cash: '', transfer: '' });
             }}
             style={{ display: 'none' }}
           />
         </label>
-
-        {parcial && payMethod !== 'credit' && (
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder="Monto a entregar..."
-            value={parcialAmount}
-            onChange={(e) => setParcialAmount(e.target.value)}
-            style={{
-              width: '100%', height: 48, fontSize: 16,
-              borderRadius: 12, border: `1px solid ${theme.borderStrong}`,
-              background: theme.surfaceSunk, color: theme.text,
-              padding: '0 14px', outline: 'none', boxSizing: 'border-box',
-              fontFamily: FONT_MONO,
-            }}
-          />
-        )}
       </div>
 
       {/* Confirm */}

@@ -103,12 +103,15 @@ def create_sale(
             raise HTTPException(status_code=400, detail="El pago inicial no puede ser mayor al total.")
         paid = payload.initial_payment_amount
 
-        is_partial = paid < total
-        method_str = f" {payload.initial_payment_method}" if payload.initial_payment_method else ""
-        payment_notes = (
-            f"Pago parcial Venta #{sale.id}{method_str}" if is_partial
-            else f"Pago completo Venta #{sale.id}{method_str}"
-        )
+        if payload.initial_payment_notes:
+            payment_notes = payload.initial_payment_notes
+        else:
+            is_partial = paid < total
+            method_str = f" {payload.initial_payment_method}" if payload.initial_payment_method else ""
+            payment_notes = (
+                f"Pago parcial Venta #{sale.id}{method_str}" if is_partial
+                else f"Pago completo Venta #{sale.id}{method_str}"
+            )
         db.add(Payment(
             client_id=sale.client_id,
             sale_id=sale.id,

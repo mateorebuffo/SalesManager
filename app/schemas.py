@@ -90,6 +90,7 @@ class SaleCreate(BaseModel):
     items: List[SaleItemCreate]
     initial_payment_amount: Optional[Decimal] = None
     initial_payment_method: Optional[str] = Field(default=None, max_length=80)
+    initial_payment_notes: Optional[str] = Field(default=None, max_length=1000)
 
     @field_validator("sale_date")
     @classmethod
