@@ -120,7 +120,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
           ? null
           : (payMethod === 'credit' ? null : (PAYMENT_METHODS.find(m => m.id === payMethod)?.label ?? null)),
         ...(parcial && parcialNotesParts.length > 0
-          ? { initial_payment_notes: parcialNotesParts.join('\n') }
+          ? { initial_payment_notes: ['Pago parcial', ...parcialNotesParts].join('\n') }
           : {}),
       };
       const url = force ? `${apiBase}/sales?force=true` : `${apiBase}/sales`;

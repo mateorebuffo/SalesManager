@@ -1726,7 +1726,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                               <span>${Number(p.amount || 0).toFixed(2)}</span>
                             </div>
                             {p.notes ? (
-                              <div style={{ color: "#6E7A98", fontSize: 13 }}>Nota: {p.notes}</div>
+                              <div style={{ color: "#6E7A98", fontSize: 13, whiteSpace: 'pre-line' }}>Nota: {p.notes}</div>
                             ) : null}
                           </>
                         )}
