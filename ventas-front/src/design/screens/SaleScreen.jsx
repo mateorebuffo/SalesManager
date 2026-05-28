@@ -29,7 +29,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
   const desktop = useIsDesktop();
   const [client, setClient] = useState(null);   // null = mostrador
   const [cart, setCart] = useState([]);          // [{ productId, q }]
-  const [payMethod, setPayMethod] = useState('cash');
+  const [payMethod, setPayMethod] = useState('credit');
   const [parcial, setParcial] = useState(false);
   const [parcialAmount, setParcialAmount] = useState('');
   const [saleDate, setSaleDate] = useState(() => localToday());
@@ -134,7 +134,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
       pushToast?.('success', `Venta registrada · ${money(total)}`);
       setCart([]);
       setClient(null);
-      setPayMethod('cash');
+      setPayMethod('credit');
       setParcial(false);
       setParcialAmount('');
       setSaleDate(localToday());
