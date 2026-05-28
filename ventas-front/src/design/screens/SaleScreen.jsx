@@ -80,7 +80,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
     setCart(c => c.map(x => x.productId === productId ? { ...x, q: n } : x));
   };
   const setPrice = (productId, val) =>
-    setCart(c => c.map(x => x.productId === productId ? { ...x, price: val } : x));
+    setCart(c => c.map(x => x.productId === productId ? { ...x, price: val.replace(',', '.') } : x));
   const removeLine = (productId) =>
     setCart(c => c.filter(x => x.productId !== productId));
 
@@ -356,7 +356,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
                 inputMode="decimal"
                 placeholder="$ 0.00"
                 value={parcialAmounts[p.id] || ''}
-                onChange={(e) => setParcialAmounts(prev => ({ ...prev, [p.id]: e.target.value }))}
+                onChange={(e) => setParcialAmounts(prev => ({ ...prev, [p.id]: e.target.value.replace(',', '.') }))}
                 style={{
                   height: 40, fontSize: 15, width: '100%',
                   borderRadius: 10, border: `1px solid ${theme.borderStrong}`,
