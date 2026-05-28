@@ -1097,7 +1097,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
   };
 
   return (
-    <>
+    <div style={{ display: 'grid', gap: 12, padding: '0 16px' }}>
       {editSaleId && (
         <EditSaleModal
           saleId={editSaleId}
@@ -1682,7 +1682,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
           ) : null}
         </div>
       ) : null}
-    </>
+    </div>
   );
 }
 
@@ -1915,7 +1915,7 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
     );
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div style={{ display: "grid", gap: 12, padding: '0 16px' }}>
       {showForm && (
         <div
           style={{
@@ -2419,7 +2419,7 @@ function StockScreen({ products, pushToast }) {
   };
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div style={{ display: "grid", gap: 12, padding: '0 16px' }}>
       {/* Tabs */}
       <div style={{ display: "flex", gap: 8 }}>
         {[["current", "Stock actual"], ["entries", "Ingresos"]].map(([key, label]) => (
@@ -2721,7 +2721,7 @@ function DebtorsScreen({ pushToast }) {
   }, [debtors, search]);
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div style={{ display: "grid", gap: 12, padding: '0 16px' }}>
       <input
         placeholder="Buscar por cliente..."
         style={{
@@ -2942,31 +2942,29 @@ function UsersScreen({ pushToast, currentUser }) {
 
         {loading ? <div style={{ color: "#6E7A98" }}>Cargando...</div> : users.map((u) => (
           <div key={u.id} style={{ border: "1px solid #1F2A4A", borderRadius: 14, background: "#121A33", padding: 14, display: "grid", gap: 10 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <div>
-                <div style={{ fontWeight: 900, fontSize: 15 }}>{u.username}</div>
-                <div style={{ fontSize: 12, color: u.role === "admin" ? "#5C82FF" : "#6E7A98", fontWeight: 700, marginTop: 2 }}>
-                  {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
-                </div>
+            <div>
+              <div style={{ fontWeight: 900, fontSize: 15 }}>{u.username}</div>
+              <div style={{ fontSize: 12, color: u.role === "admin" ? "#5C82FF" : "#6E7A98", fontWeight: 700, marginTop: 2 }}>
+                {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
               </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {u.id !== currentUser.id && (
-                  <select value={u.role} onChange={(e) => changeRole(u, e.target.value)}
-                    style={{ height: 34, borderRadius: 8, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", padding: "0 8px", fontSize: 13, cursor: "pointer" }}>
-                    {roles.map((r) => <option key={r.id} value={r.name}>{r.name.charAt(0).toUpperCase() + r.name.slice(1)}</option>)}
-                  </select>
-                )}
-                <button type="button" onClick={() => { setChangePwdId(u.id); setChangePwdValue(""); }}
-                  style={{ height: 34, padding: "0 12px", borderRadius: 8, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                  Cambiar clave
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {u.id !== currentUser.id && (
+                <select value={u.role} onChange={(e) => changeRole(u, e.target.value)}
+                  style={{ height: 34, borderRadius: 8, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", padding: "0 8px", fontSize: 13, cursor: "pointer" }}>
+                  {roles.map((r) => <option key={r.id} value={r.name}>{r.name.charAt(0).toUpperCase() + r.name.slice(1)}</option>)}
+                </select>
+              )}
+              <button type="button" onClick={() => { setChangePwdId(u.id); setChangePwdValue(""); }}
+                style={{ height: 34, padding: "0 12px", borderRadius: 8, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                Cambiar clave
+              </button>
+              {u.id !== currentUser.id && (
+                <button type="button" onClick={() => toggleActive(u)}
+                  style={{ height: 34, padding: "0 12px", borderRadius: 8, border: "none", background: u.active ? "rgba(248,113,113,0.15)" : "rgba(52,211,153,0.15)", color: u.active ? "#f87171" : "#34d399", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                  {u.active ? "Desactivar" : "Activar"}
                 </button>
-                {u.id !== currentUser.id && (
-                  <button type="button" onClick={() => toggleActive(u)}
-                    style={{ height: 34, padding: "0 12px", borderRadius: 8, border: "none", background: u.active ? "rgba(248,113,113,0.15)" : "rgba(52,211,153,0.15)", color: u.active ? "#f87171" : "#34d399", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                    {u.active ? "Desactivar" : "Activar"}
-                  </button>
-                )}
-              </div>
+              )}
             </div>
             {!u.active && <div style={{ fontSize: 12, color: "#f87171", fontWeight: 700 }}>● Inactivo</div>}
             {changePwdId === u.id && (
@@ -3139,7 +3137,7 @@ function UsersScreen({ pushToast, currentUser }) {
   }
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div style={{ display: "grid", gap: 12, padding: '0 16px' }}>
       <div style={{ display: "flex", gap: 8 }}>
         {tabBtn("users", "Usuarios")}
         {tabBtn("roles", "Roles")}

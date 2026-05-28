@@ -363,7 +363,10 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
   // Desktop wraps body in a centered container; sheets work on any screen size.
   return (
     <>
-      {desktop ? <div style={{ maxWidth: 720, margin: '0 auto' }}>{body}</div> : body}
+      {desktop
+        ? <div style={{ maxWidth: 720, margin: '0 auto' }}>{body}</div>
+        : <div style={{ overflowX: 'hidden', width: '100%' }}>{body}</div>
+      }
       {/* Client picker sheet */}
       <BottomSheet theme={theme} open={sheet === 'client'} onClose={() => setSheet(null)} title="Elegí el cliente">
         <div style={{ padding: '0 16px 12px' }}>

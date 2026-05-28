@@ -190,6 +190,7 @@ export function AppShell({ theme, screen, setScreen, currentUser, onLogout, chil
       minHeight: '100vh', background: theme.page,
       fontFamily: FONT_UI, color: theme.text,
       paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)',
+      overflowX: 'hidden',
     }}>
       {children}
       <BottomNav theme={theme} screen={screen} setScreen={setScreen} currentUser={currentUser} />
