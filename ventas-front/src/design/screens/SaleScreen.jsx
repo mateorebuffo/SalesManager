@@ -8,7 +8,7 @@
 //   - pushToast(type, message) for feedback
 //   - The actual POST: edit the `submit()` body below
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FONT_UI, FONT_MONO, money, PAYMENT_METHODS } from '../tokens';
 import {
   Avatar, Pill, Card, Row, SectionHeader, SearchField, PayMethodButton,
@@ -28,6 +28,7 @@ const localToday = () => {
 export default function SaleScreen({ theme, clients = [], products = [], pushToast, apiBase, apiFetch }) {
   const desktop = useIsDesktop();
   const [client, setClient] = useState(null);   // null = mostrador
+  const [saleType, setSaleType] = useState('sale'); // 'sale' | 'purchase'
   const [cart, setCart] = useState([]);          // [{ productId, q }]
   const [payMethod, setPayMethod] = useState('credit');
   const [parcial, setParcial] = useState(false);
@@ -36,6 +37,12 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
   const [sheet, setSheet] = useState(null);      // 'client' | 'product' | null
   const [query, setQuery] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Default to 'purchase' when a supplier client is selected
+  useEffect(() => {
+    if (client?.is_supplier) setSaleType('purchase');
+    else setSaleType('sale');
+  }, [client]);
 
   // Resolve cart -> products with prices/names
   const lines = useMemo(() => cart
@@ -108,6 +115,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
           ? new Date().toISOString()
           : new Date(saleDate + 'T12:00:00').toISOString(),
         notes: null,
+        sale_type: saleType,
         items: lines.map(l => ({
           product_id: l.p.id,
           quantity: Number(l.q),
@@ -268,6 +276,29 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
           />
         </Card>
       </div>
+
+      {/* Tipo de operación — solo para proveedores */}
+      {client?.is_supplier && (
+        <div style={{ padding: '0 16px' }}>
+          <div style={{
+            display: 'flex', gap: 4, background: theme.surfaceSunk,
+            borderRadius: 12, padding: 4, border: `1px solid ${theme.border}`,
+          }}>
+            <button onClick={() => setSaleType('purchase')} style={{
+              flex: 1, height: 34, borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: saleType === 'purchase' ? theme.brand : 'transparent',
+              color: saleType === 'purchase' ? '#fff' : theme.text3,
+              fontWeight: 700, fontSize: 14, fontFamily: FONT_UI, transition: 'all .15s',
+            }}>Compra</button>
+            <button onClick={() => setSaleType('sale')} style={{
+              flex: 1, height: 34, borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: saleType === 'sale' ? theme.brand : 'transparent',
+              color: saleType === 'sale' ? '#fff' : theme.text3,
+              fontWeight: 700, fontSize: 14, fontFamily: FONT_UI, transition: 'all .15s',
+            }}>Venta</button>
+          </div>
+        </div>
+      )}
 
       {/* Productos */}
       <SectionHeader theme={theme} title="Productos" action={count > 0 ? `${count} item${count === 1 ? '' : 's'}` : null} />
@@ -454,7 +485,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
           transition: 'opacity .15s, box-shadow .15s',
         }}>
           <Check size={22}/>
-          {submitting ? 'Procesando…' : lines.length === 0 ? 'Agregá productos' : `Confirmar venta · ${money(total)}`}
+          {submitting ? 'Procesando…' : lines.length === 0 ? 'Agregá productos' : `${saleType === 'purchase' ? 'Confirmar compra' : 'Confirmar venta'} · ${money(total)}`}
         </button>
       </div>
     </>

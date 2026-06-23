@@ -10,7 +10,7 @@ from slowapi.util import get_remote_address
 
 from .auth import get_current_user, hash_password
 from .database import engine, SessionLocal
-from .models import Base, Role, User
+from .models import Base, Role, User, SupplierPayment  # noqa: F401 — ensures table is registered
 from .routers.auth import router as auth_router
 from .routers.clients import router as clients_router
 from .routers.products import router as products_router
@@ -37,8 +37,26 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # ── Tablas ────────────────────────────────────────────────────────────────────
 Base.metadata.create_all(bind=engine)
 
+# ── Migraciones en caliente (columnas nuevas en tablas existentes) ─────────────
+def _migrate():
+    from sqlalchemy import text
+    stmts = [
+        "ALTER TABLE clients ADD COLUMN IF NOT EXISTS is_supplier BOOLEAN NOT NULL DEFAULT FALSE",
+        "ALTER TABLE sales ADD COLUMN IF NOT EXISTS sale_type VARCHAR(20) NOT NULL DEFAULT 'sale'",
+    ]
+    with engine.connect() as conn:
+        for stmt in stmts:
+            try:
+                conn.execute(text(stmt))
+                conn.commit()
+            except Exception:
+                pass
+
+
+_migrate()
+
 # ── Pantallas disponibles para permisos ───────────────────────────────────────
-ALL_PERMISSIONS = ["sale", "client", "debtors", "products", "stock"]
+ALL_PERMISSIONS = ["sale", "client", "debtors", "products", "stock", "suppliers"]
 
 
 # ── Seed inicial ──────────────────────────────────────────────────────────────

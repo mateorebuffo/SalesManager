@@ -50,3 +50,4 @@ export const Moon     = make(<path d="M20.5 14.3A8 8 0 0 1 9.7 3.5a8 8 0 1 0 10.
 export const Logout   = make(<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></>);
 export const Transfer = make(<><path d="M7 4v16M3 8l4-4 4 4"/><path d="M17 20V4M21 16l-4 4-4-4"/></>);
 export const Crypto   = make(<><path d="M12 2.2 4 7v10l8 4.8 8-4.8V7z"/><path d="M9 9h4.5a2 2 0 0 1 0 4H9zm0 4h5a2 2 0 0 1 0 4H9zM11 7v2M11 17v2"/></>);
+export const Truck    = make(<><rect x="1" y="7" width="14" height="12" rx="1"/><path d="M15 10V7.5h4.5L22 12v7h-7V10z"/><circle cx="6" cy="20.5" r="1.5"/><circle cx="17.5" cy="20.5" r="1.5"/></>);

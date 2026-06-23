@@ -4,11 +4,11 @@ from typing import List
 
 from ..database import get_db
 from ..models import Client
-from ..schemas import ClientCreate, ClientOut
+from ..schemas import ClientCreate, ClientOut, SupplierPaymentCreate, SupplierPaymentOut, SupplierPurchaseRow
 
 from sqlalchemy import func
 from decimal import Decimal
-from ..models import Sale, SaleItem, Payment, Product
+from ..models import Sale, SaleItem, Payment, Product, SupplierPayment
 from ..models import PriceList
 from ..schemas import PriceListOut, PriceListCreate
 from ..schemas import ClientStatementOut, SaleStatementRow
@@ -42,6 +42,7 @@ def create_client(payload: ClientCreate, db: Session = Depends(get_db)):
         phone=payload.phone,
         notes=payload.notes,
         price_list_id=pl_id,
+        is_supplier=payload.is_supplier,
     )
     db.add(c)
     db.commit()
@@ -49,8 +50,11 @@ def create_client(payload: ClientCreate, db: Session = Depends(get_db)):
     return c
 
 @router.get("", response_model=List[ClientOut])
-def list_clients(db: Session = Depends(get_db)):
-    return db.query(Client).order_by(Client.id.desc()).all()
+def list_clients(is_supplier: bool = None, db: Session = Depends(get_db)):
+    q = db.query(Client)
+    if is_supplier is not None:
+        q = q.filter(Client.is_supplier == is_supplier)
+    return q.order_by(Client.id.desc()).all()
 
 @router.get("/{client_id}/statement", response_model=ClientStatementOut)
 def client_statement(client_id: int, db: Session = Depends(get_db)):
@@ -82,12 +86,13 @@ def client_statement(client_id: int, db: Session = Depends(get_db)):
         db.query(
             Sale.id.label("sale_id"),
             Sale.sale_date.label("sale_date"),
+            Sale.sale_type.label("sale_type"),
             func.coalesce(items_totals_subq.c.total, 0).label("total"),
             func.coalesce(payments_totals_subq.c.paid, 0).label("paid"),
         )
         .outerjoin(items_totals_subq, items_totals_subq.c.sale_id == Sale.id)
         .outerjoin(payments_totals_subq, payments_totals_subq.c.sale_id == Sale.id)
-        .filter(Sale.client_id == client_id)
+        .filter(Sale.client_id == client_id, Sale.sale_type == "sale")
         .order_by(Sale.sale_date.desc(), Sale.id.desc())
         .all()
     )
@@ -108,6 +113,7 @@ def client_statement(client_id: int, db: Session = Depends(get_db)):
         sales_out.append(SaleStatementRow(
             sale_id=r.sale_id,
             sale_date=r.sale_date,
+            sale_type=r.sale_type,
             total=total,
             paid=paid,
             balance=balance,
@@ -237,13 +243,14 @@ def delete_client_payment(client_id: int, payment_id: int, db: Session = Depends
 
 @router.get("/debtors", response_model=list[ClientDebtRow])
 def list_debtors(db: Session = Depends(get_db)):
-    # Total entregado por cliente (sum items * price)
+    # Total entregado por cliente (sum items * price), solo ventas tipo "sale"
     delivered_subq = (
         db.query(
             Sale.client_id.label("client_id"),
             func.coalesce(func.sum(SaleItem.quantity * SaleItem.unit_price), 0).label("total_delivered"),
         )
         .join(SaleItem, SaleItem.sale_id == Sale.id)
+        .filter(Sale.sale_type == "sale")
         .group_by(Sale.client_id)
         .subquery()
     )
@@ -267,6 +274,7 @@ def list_debtors(db: Session = Depends(get_db)):
         )
         .outerjoin(delivered_subq, delivered_subq.c.client_id == Client.id)
         .outerjoin(paid_subq, paid_subq.c.client_id == Client.id)
+        .filter(Client.is_supplier == False)  # noqa: E712
         .all()
     )
 
@@ -313,6 +321,102 @@ def list_client_payments(client_id: int, db: Session = Depends(get_db)):
             kind="general" if p.sale_id is None else "sale",
         ))
     return out
+
+@router.get("/{client_id}/purchases", response_model=list[SupplierPurchaseRow])
+def list_supplier_purchases(client_id: int, db: Session = Depends(get_db)):
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Proveedor no existe.")
+
+    items_totals_subq = (
+        db.query(
+            SaleItem.sale_id.label("sale_id"),
+            func.coalesce(func.sum(SaleItem.quantity * SaleItem.unit_price), 0).label("total"),
+        )
+        .group_by(SaleItem.sale_id)
+        .subquery()
+    )
+    paid_subq = (
+        db.query(
+            SupplierPayment.purchase_id.label("sale_id"),
+            func.coalesce(func.sum(SupplierPayment.amount), 0).label("paid"),
+        )
+        .filter(SupplierPayment.purchase_id.isnot(None))
+        .group_by(SupplierPayment.purchase_id)
+        .subquery()
+    )
+
+    rows = (
+        db.query(
+            Sale.id.label("sale_id"),
+            Sale.sale_date.label("sale_date"),
+            Sale.notes.label("notes"),
+            func.coalesce(items_totals_subq.c.total, 0).label("total"),
+            func.coalesce(paid_subq.c.paid, 0).label("paid"),
+        )
+        .outerjoin(items_totals_subq, items_totals_subq.c.sale_id == Sale.id)
+        .outerjoin(paid_subq, paid_subq.c.sale_id == Sale.id)
+        .filter(Sale.client_id == client_id, Sale.sale_type == "purchase")
+        .order_by(Sale.sale_date.desc(), Sale.id.desc())
+        .all()
+    )
+
+    out = []
+    for r in rows:
+        total = Decimal(str(r.total)).quantize(Decimal("0.01"))
+        paid = Decimal(str(r.paid)).quantize(Decimal("0.01"))
+        out.append(SupplierPurchaseRow(
+            sale_id=r.sale_id,
+            sale_date=r.sale_date,
+            notes=r.notes,
+            total=total,
+            paid=paid,
+            balance=(total - paid).quantize(Decimal("0.01")),
+        ))
+    return out
+
+
+@router.post("/{client_id}/supplier-payments", response_model=SupplierPaymentOut, status_code=status.HTTP_201_CREATED)
+def add_supplier_payment(client_id: int, payload: SupplierPaymentCreate, db: Session = Depends(get_db)):
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Proveedor no existe.")
+
+    payment_dt = payload.payment_date
+    if payment_dt is None:
+        payment_dt = datetime.now(AR_TZ)
+    else:
+        if payment_dt.tzinfo is None:
+            payment_dt = payment_dt.replace(tzinfo=AR_TZ)
+        else:
+            payment_dt = payment_dt.astimezone(AR_TZ)
+
+    sp = SupplierPayment(
+        supplier_id=client_id,
+        purchase_id=payload.purchase_id,
+        payment_date=payment_dt,
+        amount=payload.amount,
+        notes=payload.notes,
+    )
+    db.add(sp)
+    db.commit()
+    db.refresh(sp)
+    return sp
+
+
+@router.get("/{client_id}/supplier-payments", response_model=list[SupplierPaymentOut])
+def list_supplier_payments(client_id: int, db: Session = Depends(get_db)):
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Proveedor no existe.")
+
+    return (
+        db.query(SupplierPayment)
+        .filter(SupplierPayment.supplier_id == client_id)
+        .order_by(SupplierPayment.payment_date.desc(), SupplierPayment.id.desc())
+        .all()
+    )
+
 
 def ensure_default_price_list_id(db: Session) -> int:
     pl = db.query(PriceList).filter(PriceList.name == "General").first()

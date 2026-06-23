@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 from ..auth import CurrentUser, get_current_user
 from ..database import get_db
-from ..models import Client, Product, Sale, SaleItem, Payment, StockItem
+from ..models import Client, Product, Sale, SaleItem, Payment, StockItem, StockEntry
 from ..schemas import SaleCreate, SaleSummaryOut, PaymentCreate, SaleBalanceOut, SaleDetailOut, SaleItemOut, SaleUpdate
 
 logger = logging.getLogger(__name__)
@@ -27,6 +27,8 @@ def create_sale(
     if force and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Solo un administrador puede forzar ventas sin stock.")
 
+    sale_type = payload.sale_type if payload.sale_type in ("sale", "purchase") else "sale"
+
     # 1) validar cliente
     client = db.query(Client).filter(Client.id == payload.client_id).first()
     if not client:
@@ -38,8 +40,8 @@ def create_sale(
     if len(products) != len(set(product_ids)):
         raise HTTPException(status_code=400, detail="Uno o más productos no existen o están inactivos.")
 
-    # 2b) verificar stock disponible (si no se fuerza)
-    if not force:
+    # 2b) verificar stock disponible solo para ventas (las compras suman stock)
+    if sale_type == "sale" and not force:
         stock_in_map = dict(
             db.query(StockItem.product_id, func.coalesce(func.sum(StockItem.quantity), 0))
             .filter(StockItem.product_id.in_(product_ids))
@@ -69,7 +71,7 @@ def create_sale(
                 status_code=409,
                 detail={"code": "STOCK_INSUFFICIENT", "items": insufficient},
             )
-    else:
+    elif sale_type == "sale" and force:
         logger.warning(
             "Venta creada con force=True (stock omitido). client_id=%s productos=%s",
             payload.client_id,
@@ -81,6 +83,7 @@ def create_sale(
         client_id=payload.client_id,
         sale_date=payload.sale_date,
         notes=payload.notes,
+        sale_type=sale_type,
     )
     db.add(sale)
     db.flush()  # obtiene sale.id sin commit
@@ -121,6 +124,19 @@ def create_sale(
         ))
 
     db.commit()
+
+    # Para compras: crear StockEntry automático con los items adquiridos
+    if sale_type == "purchase":
+        entry = StockEntry(
+            entry_date=payload.sale_date,
+            notes=f"Compra #{sale.id}" + (f" — {payload.notes}" if payload.notes else ""),
+        )
+        db.add(entry)
+        db.flush()
+        for it in payload.items:
+            db.add(StockItem(stock_entry_id=entry.id, product_id=it.product_id, quantity=it.quantity))
+        db.commit()
+
     return SaleSummaryOut(
         sale_id=sale.id,
         total=total.quantize(Decimal("0.01")),
@@ -159,6 +175,7 @@ def get_sale(sale_id: int, db: Session = Depends(get_db)):
         client_id=sale.client_id,
         sale_date=sale.sale_date,
         notes=sale.notes,
+        sale_type=sale.sale_type,
         items=items,
         total=total_dec,
         paid=paid_dec,

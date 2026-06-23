@@ -6,20 +6,23 @@
 import { useIsDesktop, Avatar } from './primitives';
 import { FONT_UI } from './tokens';
 import {
-  Cart, Pkg, Users, Cash, Bell, Logout, Receipt, Edit,
+  Cart, Pkg, Users, Cash, Bell, Logout, Receipt, Edit, Truck,
 } from './Icons';
+
 
 // One source of truth for the navigation items. `key` lines up with the
 // `screen` keys your App.jsx already uses.
 export const NAV_ITEMS = [
-  { key: 'sale',     label: 'Venta',    icon: Cart    },
-  { key: 'products', label: 'Productos', icon: Pkg    },
-  { key: 'client',   label: 'Clientes',  icon: Users  },
-  { key: 'users',    label: 'Usuarios',  icon: Edit   },
+  { key: 'sale',      label: 'Venta',       icon: Cart    },
+  { key: 'products',  label: 'Productos',   icon: Pkg     },
+  { key: 'client',    label: 'Clientes',    icon: Users   },
+  { key: 'suppliers', label: 'Proveedores', icon: Truck   },
+  { key: 'users',     label: 'Usuarios',    icon: Edit    },
 ];
 
 const SCREEN_TITLES = {
-  sale: 'Venta', products: 'Productos', client: 'Clientes', users: 'Usuarios',
+  sale: 'Venta', products: 'Productos', client: 'Clientes',
+  suppliers: 'Proveedores', users: 'Usuarios',
 };
 
 // canSee — replicate of your App.jsx helper, but here so the shell can

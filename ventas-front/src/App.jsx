@@ -838,6 +838,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
   const [ncName, setNcName] = useState("");
   const [ncPhone, setNcPhone] = useState("");
   const [ncPriceListId, setNcPriceListId] = useState("");
+  const [ncIsSupplier, setNcIsSupplier] = useState(false);
   const [ncSubmitting, setNcSubmitting] = useState(false);
   const ncNameRef = useRef(null);
 
@@ -862,7 +863,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
       const res = await apiFetch(`${API}/clients`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: n, phone: ncPhone.trim() || null, price_list_id: plId }),
+        body: JSON.stringify({ name: n, phone: ncPhone.trim() || null, price_list_id: plId, is_supplier: ncIsSupplier }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -870,6 +871,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
       }
       setNcName("");
       setNcPhone("");
+      setNcIsSupplier(false);
       setShowNewClient(false);
       pushToast("Cliente creado ✅", "success");
       onClientCreated?.();
@@ -1305,6 +1307,15 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
               ))}
             </select>
           </div>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "4px 0" }}>
+            <input
+              type="checkbox"
+              checked={ncIsSupplier}
+              onChange={e => setNcIsSupplier(e.target.checked)}
+              style={{ width: 18, height: 18, accentColor: "#5C82FF", cursor: "pointer" }}
+            />
+            <span style={{ color: "#A5B0CC", fontSize: 14, fontWeight: 600 }}>Es proveedor</span>
+          </label>
           <button
             type="button"
             disabled={ncSubmitting}
@@ -2922,6 +2933,281 @@ function DebtorsScreen({ pushToast }) {
   );
 }
 
+/** Pantalla: Proveedores */
+function SuppliersScreen({ suppliers, pushToast, onSupplierCreated }) {
+  const supplierRef = useRef(null);
+  const [supplierQuery, setSupplierQuery] = useState("");
+  const [selectedSupplier, setSelectedSupplier] = useState(null);
+  const [tab, setTab] = useState("purchases");
+
+  const [purchases, setPurchases] = useState([]);
+  const [supplierPayments, setSupplierPayments] = useState([]);
+  const [statement, setStatement] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [statementLoading, setStatementLoading] = useState(false);
+
+  const [showNewSupplier, setShowNewSupplier] = useState(false);
+  const [nsName, setNsName] = useState("");
+  const [nsPhone, setNsPhone] = useState("");
+  const [nsSubmitting, setNsSubmitting] = useState(false);
+  const nsNameRef = useRef(null);
+
+  const [payAmount, setPayAmount] = useState("");
+  const [payNotes, setPayNotes] = useState("");
+  const [payDate, setPayDate] = useState(() => localToday());
+  const [paySubmitting, setPaySubmitting] = useState(false);
+
+  useEffect(() => {
+    if (showNewSupplier) setTimeout(() => nsNameRef.current?.focus(), 0);
+  }, [showNewSupplier]);
+
+  useEffect(() => {
+    if (!selectedSupplier) {
+      setPurchases([]); setSupplierPayments([]); setStatement(null); setTab("purchases");
+      return;
+    }
+    setLoading(true);
+    setTab("purchases");
+    setStatement(null);
+    Promise.all([
+      apiFetch(`${API}/clients/${selectedSupplier.id}/purchases`).then(r => r.json()),
+      apiFetch(`${API}/clients/${selectedSupplier.id}/supplier-payments`).then(r => r.json()),
+    ]).then(([p, sp]) => {
+      setPurchases(Array.isArray(p) ? p : []);
+      setSupplierPayments(Array.isArray(sp) ? sp : []);
+    }).catch(() => pushToast("Error cargando datos del proveedor", "error"))
+      .finally(() => setLoading(false));
+  }, [selectedSupplier]);
+
+  useEffect(() => {
+    if (!selectedSupplier || tab !== "sales" || statement) return;
+    setStatementLoading(true);
+    apiFetch(`${API}/clients/${selectedSupplier.id}/statement`)
+      .then(r => r.json())
+      .then(data => setStatement(data))
+      .catch(() => pushToast("Error cargando ventas", "error"))
+      .finally(() => setStatementLoading(false));
+  }, [tab, selectedSupplier, statement]);
+
+  const submitNewSupplier = async () => {
+    const n = nsName.trim();
+    if (!n) { pushToast("Ingresá un nombre.", "error"); return; }
+    setNsSubmitting(true);
+    try {
+      const res = await apiFetch(`${API}/clients`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: n, phone: nsPhone.trim() || null, is_supplier: true }),
+      });
+      if (!res.ok) throw new Error(((await res.json().catch(() => ({}))).detail) || "Error");
+      setNsName(""); setNsPhone(""); setShowNewSupplier(false);
+      pushToast("Proveedor creado ✅", "success");
+      onSupplierCreated?.();
+    } catch (e) { pushToast(e.message || "Error", "error"); }
+    finally { setNsSubmitting(false); }
+  };
+
+  const submitPayment = async () => {
+    const amount = Number(payAmount);
+    if (!Number.isFinite(amount) || amount <= 0) { pushToast("Ingresá un monto válido.", "error"); return; }
+    setPaySubmitting(true);
+    try {
+      const res = await apiFetch(`${API}/clients/${selectedSupplier.id}/supplier-payments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount,
+          payment_date: payDate === localToday() ? new Date().toISOString() : new Date(payDate + "T12:00:00").toISOString(),
+          notes: payNotes.trim() || null,
+        }),
+      });
+      if (!res.ok) throw new Error(((await res.json().catch(() => ({}))).detail) || "Error");
+      setPayAmount(""); setPayNotes(""); setPayDate(localToday());
+      const sp = await apiFetch(`${API}/clients/${selectedSupplier.id}/supplier-payments`).then(r => r.json());
+      setSupplierPayments(Array.isArray(sp) ? sp : []);
+      pushToast("Pago registrado ✅", "success");
+    } catch (e) { pushToast(e.message || "Error", "error"); }
+    finally { setPaySubmitting(false); }
+  };
+
+  const tabBtnStyle = (active) => ({
+    flex: 1, height: 40, borderRadius: 10, cursor: "pointer",
+    border: active ? "1px solid #5C82FF" : "1px solid #1F2A4A",
+    background: active ? "#1A2453" : "#0A1124",
+    color: active ? "#5C82FF" : "#6E7A98",
+    fontWeight: 900, fontSize: 13, fontFamily: "inherit",
+  });
+
+  const inputStyle = {
+    width: "100%", height: 48, fontSize: 16, borderRadius: 12,
+    border: "1px solid #1F2A4A", background: "#121A33", color: "#fff",
+    padding: "0 12px", outline: "none", boxSizing: "border-box",
+  };
+
+  const totalOwed = purchases.reduce((s, p) => s + Number(p.balance || 0), 0);
+  const totalPaid = supplierPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+
+  return (
+    <div style={{ display: "grid", gap: 12, padding: "16px 16px 0" }}>
+      <SearchDropdown
+        inputRef={supplierRef}
+        label="Proveedor"
+        placeholder="Buscar proveedor..."
+        items={suppliers}
+        getKey={c => c.id}
+        getLabel={c => c.name}
+        query={supplierQuery}
+        setQuery={setSupplierQuery}
+        selected={selectedSupplier}
+        setSelected={c => { setSelectedSupplier(c ? { id: c.id, name: c.name } : null); setStatement(null); }}
+        onAdd={() => setShowNewSupplier(v => !v)}
+      />
+
+      {showNewSupplier && (
+        <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 10, marginBottom: 4 }}>
+          <div style={{ fontWeight: 900 }}>Crear proveedor</div>
+          <input ref={nsNameRef} placeholder="Nombre" style={inputStyle} value={nsName}
+            onChange={e => setNsName(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); submitNewSupplier(); } }} />
+          <input inputMode="tel" placeholder="Teléfono (opcional)" style={inputStyle}
+            value={nsPhone} onChange={e => setNsPhone(e.target.value)} />
+          <button type="button" disabled={nsSubmitting} onClick={submitNewSupplier}
+            style={{ height: 52, borderRadius: 12, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", fontWeight: 900, fontSize: 16, opacity: nsSubmitting ? 0.7 : 1, cursor: nsSubmitting ? "not-allowed" : "pointer" }}>
+            {nsSubmitting ? "Creando..." : "Crear proveedor"}
+          </button>
+        </div>
+      )}
+
+      {!selectedSupplier ? (
+        <div style={{ color: "#6E7A98" }}>Elegí un proveedor para ver sus datos.</div>
+      ) : loading ? (
+        <div style={{ color: "#6E7A98" }}>Cargando...</div>
+      ) : (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 12 }}>
+              <div style={{ color: "#6E7A98", fontSize: 12 }}>Les debemos</div>
+              <div style={{ fontWeight: 900, fontSize: 20, color: totalOwed > 0 ? "#f87171" : "#34d399" }}>
+                ${totalOwed.toFixed(2)}
+              </div>
+            </div>
+            <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 12 }}>
+              <div style={{ color: "#6E7A98", fontSize: 12 }}>Pagado a ellos</div>
+              <div style={{ fontWeight: 900, fontSize: 20 }}>${totalPaid.toFixed(2)}</div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <button style={tabBtnStyle(tab === "purchases")} onClick={() => setTab("purchases")}>Compras</button>
+            <button style={tabBtnStyle(tab === "payments")} onClick={() => setTab("payments")}>Dinero</button>
+            <button style={tabBtnStyle(tab === "sales")} onClick={() => setTab("sales")}>Ventas</button>
+          </div>
+
+          {tab === "purchases" && (
+            purchases.length === 0 ? (
+              <div style={{ color: "#6E7A98" }}>No hay compras registradas.</div>
+            ) : purchases.map(p => (
+              <div key={p.sale_id} style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 6 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ fontWeight: 900 }}>COMPRA #{p.sale_id}</div>
+                  <div style={{ color: "#6E7A98", fontSize: 12 }}>{formatArDate(p.sale_date)}</div>
+                </div>
+                {p.notes && <div style={{ color: "#6E7A98", fontSize: 13 }}>{p.notes}</div>}
+                <div style={{ display: "flex", justifyContent: "space-between", color: "#A5B0CC", fontSize: 14 }}>
+                  <span>Total</span><span style={{ fontWeight: 800 }}>${Number(p.total).toFixed(2)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", color: "#A5B0CC", fontSize: 14 }}>
+                  <span>Pagado</span><span style={{ fontWeight: 800, color: "#34d399" }}>${Number(p.paid).toFixed(2)}</span>
+                </div>
+                {Number(p.balance) > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #1F2A4A", paddingTop: 6, marginTop: 2 }}>
+                    <span>Saldo</span><span style={{ color: "#f87171", fontWeight: 900 }}>${Number(p.balance).toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+
+          {tab === "payments" && (
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 10 }}>
+                <div style={{ fontWeight: 900, fontSize: 13, color: "#6E7A98", letterSpacing: 1, textTransform: "uppercase" }}>
+                  Registrar entrega de dinero
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
+                  <input inputMode="decimal" placeholder="Monto"
+                    style={{ height: 48, fontSize: 16, borderRadius: 12, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
+                    value={payAmount} onChange={e => setPayAmount(e.target.value)} />
+                  <NotesCombo placeholder="Notas (opcional)"
+                    inputStyle={{ width: "100%", height: 48, fontSize: 16, borderRadius: 12, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
+                    value={payNotes} onChange={setPayNotes} />
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#6E7A98" }}>Fecha</span>
+                  <input type="date" lang="en-GB" value={payDate} max={localToday()} onChange={e => setPayDate(e.target.value)}
+                    style={{ height: 40, fontSize: 14, borderRadius: 10, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 10px", outline: "none", cursor: "pointer", fontFamily: "inherit" }} />
+                </div>
+                <button type="button" disabled={paySubmitting} onClick={submitPayment}
+                  style={{ height: 48, borderRadius: 12, border: "none", background: paySubmitting ? "#3b3b8a" : "#5C82FF", color: "#fff", fontWeight: 900, fontSize: 15, opacity: paySubmitting ? 0.7 : 1, cursor: paySubmitting ? "not-allowed" : "pointer" }}>
+                  {paySubmitting ? "Registrando..." : "Confirmar entrega"}
+                </button>
+              </div>
+              {supplierPayments.length === 0 ? (
+                <div style={{ color: "#6E7A98" }}>No hay entregas registradas.</div>
+              ) : supplierPayments.map(p => (
+                <div key={p.id} style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 12, display: "grid", gap: 6 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ fontWeight: 900 }}>Pago #{p.id}</div>
+                    <div style={{ color: "#6E7A98", fontSize: 12 }}>{formatArDate(p.payment_date)}</div>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900 }}>
+                    <span>Monto</span><span>${Number(p.amount || 0).toFixed(2)}</span>
+                  </div>
+                  {p.notes && <div style={{ color: "#6E7A98", fontSize: 13, whiteSpace: "pre-line" }}>{p.notes}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {tab === "sales" && (
+            statementLoading ? (
+              <div style={{ color: "#6E7A98" }}>Cargando ventas...</div>
+            ) : !statement ? null : statement.sales.length === 0 ? (
+              <div style={{ color: "#6E7A98" }}>No hay ventas registradas a este proveedor.</div>
+            ) : (
+              <>
+                <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14 }}>
+                  <div style={{ color: "#6E7A98", fontSize: 12 }}>Saldo pendiente</div>
+                  <div style={{ fontWeight: 900, fontSize: 22 }}>${Number(statement.total_balance || 0).toFixed(2)}</div>
+                </div>
+                {statement.sales.map(s => (
+                  <div key={s.sale_id} style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ fontWeight: 900 }}>VENTA #{s.sale_id}</div>
+                      <div style={{ color: "#6E7A98", fontSize: 12 }}>{formatArDate(s.sale_date)}</div>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "#A5B0CC", fontSize: 14 }}>
+                      <span>Total</span><span style={{ fontWeight: 800 }}>${Number(s.total).toFixed(2)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "#A5B0CC", fontSize: 14 }}>
+                      <span>Pagado</span><span style={{ fontWeight: 800 }}>${Number(s.paid).toFixed(2)}</span>
+                    </div>
+                    {Number(s.balance) > 0 && (
+                      <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #1F2A4A", paddingTop: 6 }}>
+                        <span>Saldo</span><span style={{ color: "#f87171", fontWeight: 900 }}>${Number(s.balance).toFixed(2)}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </>
+            )
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 const SCREEN_OPTIONS = [
   { key: "sale",    label: "Nueva venta" },
   { key: "client",  label: "Cliente" },
@@ -3451,7 +3737,7 @@ export default function App() {
 function AppShell({ onLogout, currentUser }) {
   // Pantalla inicial: arrancamos en "sale" (Nueva venta) por el rediseño.
   // Si el usuario no tiene permiso, caemos a la primera disponible.
-  const NAV_KEYS = ["sale", "products", "client", "users"];
+  const NAV_KEYS = ["sale", "products", "client", "suppliers", "users"];
   const [screen, setScreen] = useState(() => {
     if (canSee(currentUser, "sale")) return "sale";
     return NAV_KEYS.find((s) => canSee(currentUser, s)) ?? "sale";
@@ -3536,8 +3822,13 @@ function AppShell({ onLogout, currentUser }) {
           <NewSaleScreen clients={clients} products={products} pushToast={pushToast} />
         ) : screen === "client" ? (
           <ClientScreen
-            clients={clients} products={products} priceLists={priceLists}
+            clients={clients.filter(c => !c.is_supplier)} products={products} priceLists={priceLists}
             pushToast={pushToast} onClientCreated={refreshClients}
+          />
+        ) : screen === "suppliers" ? (
+          <SuppliersScreen
+            suppliers={clients.filter(c => c.is_supplier)}
+            pushToast={pushToast} onSupplierCreated={refreshClients}
           />
         ) : screen === "users" ? (
           <UsersScreen pushToast={pushToast} currentUser={currentUser} />

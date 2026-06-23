@@ -12,6 +12,7 @@ class Client(Base):
     notes = Column(String(500), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     price_list_id = Column(Integer, ForeignKey("price_lists.id"), nullable=True, index=True)
+    is_supplier = Column(Boolean, nullable=False, server_default="false")
     price_list = relationship("PriceList")
 
 class Product(Base):
@@ -36,6 +37,7 @@ class Sale(Base):
 
     sale_date = Column(DateTime(timezone=True), nullable=False)  # editable (puede ser pasado)
     notes = Column(String(500), nullable=True)
+    sale_type = Column(String(20), nullable=False, server_default="sale")  # "sale" | "purchase"
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     client = relationship("Client")
@@ -121,6 +123,21 @@ class StockItem(Base):
 
     entry = relationship("StockEntry", back_populates="items")
     product = relationship("Product")
+
+
+class SupplierPayment(Base):
+    __tablename__ = "supplier_payments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    supplier_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
+    purchase_id = Column(Integer, ForeignKey("sales.id"), nullable=True, index=True)
+    payment_date = Column(DateTime(timezone=True), nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    notes = Column(String(500), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    supplier = relationship("Client")
+    purchase = relationship("Sale")
 
 
 class Role(Base):

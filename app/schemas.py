@@ -91,6 +91,7 @@ class SaleCreate(BaseModel):
     initial_payment_amount: Optional[Decimal] = None
     initial_payment_method: Optional[str] = Field(default=None, max_length=80)
     initial_payment_notes: Optional[str] = Field(default=None, max_length=1000)
+    sale_type: str = "sale"  # "sale" | "purchase"
 
     @field_validator("sale_date")
     @classmethod
@@ -125,6 +126,7 @@ class SaleStatementRow(BaseModel):
     total: Decimal
     paid: Decimal
     balance: Decimal
+    sale_type: str = "sale"
 
 class ClientStatementOut(BaseModel):
     client_id: int
@@ -213,6 +215,7 @@ class ClientCreate(BaseModel):
     phone: Optional[str] = None
     notes: Optional[str] = None
     price_list_id: Optional[int] = None
+    is_supplier: bool = False
 
 class ClientOut(BaseModel):
     id: int
@@ -220,6 +223,7 @@ class ClientOut(BaseModel):
     phone: Optional[str] = None
     notes: Optional[str] = None
     price_list_id: Optional[int] = None
+    is_supplier: bool = False
     class Config:
         from_attributes = True
 
@@ -242,6 +246,7 @@ class SaleDetailOut(BaseModel):
     total: Decimal
     paid: Decimal
     balance: Decimal
+    sale_type: str = "sale"
 
 class SaleUpdate(BaseModel):
     sale_date: Optional[datetime] = None
@@ -325,6 +330,42 @@ class ProductStockOut(BaseModel):
     stock_in: Decimal
     stock_out: Decimal
     current_stock: Decimal
+
+
+# ── Proveedores ───────────────────────────────────────────────────────────────
+
+class SupplierPaymentCreate(BaseModel):
+    amount: Decimal
+    purchase_id: Optional[int] = None
+    payment_date: Optional[datetime] = None
+    notes: Optional[str] = Field(default=None, max_length=500)
+
+    @field_validator("amount")
+    @classmethod
+    def validate_amount(cls, v: Decimal):
+        if v <= 0:
+            raise ValueError("amount debe ser > 0")
+        if v > _MAX_AMOUNT:
+            raise ValueError(f"amount no puede superar {_MAX_AMOUNT}")
+        return v
+
+class SupplierPaymentOut(BaseModel):
+    id: int
+    supplier_id: int
+    purchase_id: Optional[int] = None
+    payment_date: datetime
+    amount: Decimal
+    notes: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+class SupplierPurchaseRow(BaseModel):
+    sale_id: int
+    sale_date: datetime
+    notes: Optional[str] = None
+    total: Decimal
+    paid: Decimal
+    balance: Decimal
 
 
 # ── Usuarios ──────────────────────────────────────────────────────────────────
