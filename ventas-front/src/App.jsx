@@ -794,6 +794,8 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
 }
 
 function ClientScreen({ clients, products, priceLists, pushToast, onClientCreated }) {
+  const [clientSection, setClientSection] = useState("clients"); // "clients" | "debtors"
+
   const clientRef = useRef(null);
   const [clientQuery, setClientQuery] = useState("");
   const [selectedClient, setSelectedClient] = useState(null); // {id, name}
@@ -1187,8 +1189,25 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
     } catch {/* silencioso */}
   };
 
+  const tabBtnStyle = (active) => ({
+    flex: 1, height: 40, borderRadius: 10, cursor: "pointer",
+    border: active ? "1px solid #5C82FF" : "1px solid #1F2A4A",
+    background: active ? "#1A2453" : "#0A1124",
+    color: active ? "#5C82FF" : "#6E7A98",
+    fontWeight: 900, fontSize: 14, fontFamily: "inherit",
+  });
+
   return (
     <div style={{ display: 'grid', gap: 12, padding: '16px 16px 0' }}>
+      {/* Tabs Clientes / Deudores */}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button style={tabBtnStyle(clientSection === "clients")} onClick={() => setClientSection("clients")}>Clientes</button>
+        <button style={tabBtnStyle(clientSection === "debtors")} onClick={() => setClientSection("debtors")}>Deudores</button>
+      </div>
+
+      {clientSection === "debtors" ? (
+        <DebtorsScreen pushToast={pushToast} />
+      ) : (<>
       {editSaleId && (
         <EditSaleModal
           saleId={editSaleId}
@@ -1773,6 +1792,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
           ) : null}
         </div>
       ) : null}
+      </>)}
     </div>
   );
 }
@@ -1796,6 +1816,8 @@ function NewSaleScreen({ clients, products, pushToast }) {
 
 /** Pantalla: Productos */
 function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onPriceListCreated }) {
+  const [productsTab, setProductsTab] = useState("products"); // "products" | "stock"
+
   // --- Crear ---
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
@@ -2005,8 +2027,25 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
       </div>
     );
 
+  const tabBtnStyle = (active) => ({
+    flex: 1, height: 40, borderRadius: 10, cursor: "pointer",
+    border: active ? "1px solid #5C82FF" : "1px solid #1F2A4A",
+    background: active ? "#1A2453" : "#0A1124",
+    color: active ? "#5C82FF" : "#6E7A98",
+    fontWeight: 900, fontSize: 14, fontFamily: "inherit",
+  });
+
   return (
     <div style={{ display: "grid", gap: 12, padding: '16px 16px 0' }}>
+      {/* Tabs Productos / Stock */}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button style={tabBtnStyle(productsTab === "products")} onClick={() => setProductsTab("products")}>Productos</button>
+        <button style={tabBtnStyle(productsTab === "stock")} onClick={() => setProductsTab("stock")}>Stock</button>
+      </div>
+
+      {productsTab === "stock" ? (
+        <StockScreen products={products} pushToast={pushToast} />
+      ) : (<>
       {showForm && (
         <div
           style={{
@@ -2359,6 +2398,7 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
           </div>
         )}
       </div>
+      </>)}
     </div>
   );
 }
@@ -2885,9 +2925,7 @@ function DebtorsScreen({ pushToast }) {
 const SCREEN_OPTIONS = [
   { key: "sale",    label: "Nueva venta" },
   { key: "client",  label: "Cliente" },
-  { key: "debtors", label: "Deudores" },
   { key: "products",label: "Productos" },
-  { key: "stock",   label: "Stock" },
 ];
 
 /** Pantalla: Usuarios (solo admin) */
@@ -3413,7 +3451,7 @@ export default function App() {
 function AppShell({ onLogout, currentUser }) {
   // Pantalla inicial: arrancamos en "sale" (Nueva venta) por el rediseño.
   // Si el usuario no tiene permiso, caemos a la primera disponible.
-  const NAV_KEYS = ["sale", "products", "client", "debtors", "stock", "users"];
+  const NAV_KEYS = ["sale", "products", "client", "users"];
   const [screen, setScreen] = useState(() => {
     if (canSee(currentUser, "sale")) return "sale";
     return NAV_KEYS.find((s) => canSee(currentUser, s)) ?? "sale";
@@ -3501,10 +3539,6 @@ function AppShell({ onLogout, currentUser }) {
             clients={clients} products={products} priceLists={priceLists}
             pushToast={pushToast} onClientCreated={refreshClients}
           />
-        ) : screen === "debtors" ? (
-          <DebtorsScreen pushToast={pushToast} />
-        ) : screen === "stock" ? (
-          <StockScreen products={products} pushToast={pushToast} />
         ) : screen === "users" ? (
           <UsersScreen pushToast={pushToast} currentUser={currentUser} />
         ) : (

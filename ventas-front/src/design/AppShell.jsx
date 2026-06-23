@@ -15,14 +15,11 @@ export const NAV_ITEMS = [
   { key: 'sale',     label: 'Venta',    icon: Cart    },
   { key: 'products', label: 'Productos', icon: Pkg    },
   { key: 'client',   label: 'Clientes',  icon: Users  },
-  { key: 'debtors',  label: 'Deudores',  icon: Cash   },
-  { key: 'stock',    label: 'Stock',     icon: Receipt },
   { key: 'users',    label: 'Usuarios',  icon: Edit   },
 ];
 
 const SCREEN_TITLES = {
-  sale: 'Venta', products: 'Productos', client: 'Clientes',
-  debtors: 'Deudores', stock: 'Stock', users: 'Usuarios',
+  sale: 'Venta', products: 'Productos', client: 'Clientes', users: 'Usuarios',
 };
 
 // canSee — replicate of your App.jsx helper, but here so the shell can
