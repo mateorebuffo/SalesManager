@@ -422,6 +422,7 @@ const PAY_METHODS_EDIT = [
 function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [saleDate, setSaleDate] = useState("");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState([]);
@@ -485,6 +486,25 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
     setPrice("");
     setItemNotes("");
     setTimeout(() => productRef.current?.focus(), 0);
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`¿Eliminar venta #${saleId}? Esta acción no se puede deshacer.`)) return;
+    setDeleting(true);
+    try {
+      const res = await apiFetch(`${API}/sales/${saleId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Error eliminando venta");
+      }
+      pushToast(`Venta #${saleId} eliminada`, "success");
+      onSaved();
+      onClose();
+    } catch (e) {
+      pushToast(e.message || "Error", "error");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const submit = async (force = false) => {
@@ -746,14 +766,25 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
             </div>
 
             {/* Guardar */}
-            <button type="button" disabled={saving} onClick={() => submit(false)}
+            <button type="button" disabled={saving || deleting} onClick={() => submit(false)}
               style={{
                 height: 50, borderRadius: 12, border: "none",
                 background: saving ? "#3b3b8a" : "#5C82FF", color: "#fff",
-                fontWeight: 900, fontSize: 16, cursor: saving ? "not-allowed" : "pointer",
-                opacity: saving ? 0.7 : 1,
+                fontWeight: 900, fontSize: 16, cursor: (saving || deleting) ? "not-allowed" : "pointer",
+                opacity: (saving || deleting) ? 0.7 : 1,
               }}>
               {saving ? "Guardando..." : "Guardar cambios"}
+            </button>
+
+            {/* Eliminar */}
+            <button type="button" disabled={saving || deleting} onClick={handleDelete}
+              style={{
+                height: 44, borderRadius: 12, border: "1px solid rgba(248,113,113,0.4)",
+                background: "transparent", color: deleting ? "#9ca3af" : "#f87171",
+                fontWeight: 700, fontSize: 14, cursor: (saving || deleting) ? "not-allowed" : "pointer",
+                opacity: (saving || deleting) ? 0.5 : 1,
+              }}>
+              {deleting ? "Eliminando..." : "Eliminar venta"}
             </button>
           </>
         )}
@@ -1157,7 +1188,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
   };
 
   return (
-    <div style={{ display: 'grid', gap: 12, padding: '0 16px' }}>
+    <div style={{ display: 'grid', gap: 12, padding: '16px 16px 0' }}>
       {editSaleId && (
         <EditSaleModal
           saleId={editSaleId}
@@ -1975,7 +2006,7 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
     );
 
   return (
-    <div style={{ display: "grid", gap: 12, padding: '0 16px' }}>
+    <div style={{ display: "grid", gap: 12, padding: '16px 16px 0' }}>
       {showForm && (
         <div
           style={{
@@ -2479,7 +2510,7 @@ function StockScreen({ products, pushToast }) {
   };
 
   return (
-    <div style={{ display: "grid", gap: 12, padding: '0 16px' }}>
+    <div style={{ display: "grid", gap: 12, padding: '16px 16px 0' }}>
       {/* Tabs */}
       <div style={{ display: "flex", gap: 8 }}>
         {[["current", "Stock actual"], ["entries", "Ingresos"]].map(([key, label]) => (
@@ -2781,7 +2812,7 @@ function DebtorsScreen({ pushToast }) {
   }, [debtors, search]);
 
   return (
-    <div style={{ display: "grid", gap: 12, padding: '0 16px' }}>
+    <div style={{ display: "grid", gap: 12, padding: '16px 16px 0' }}>
       <input
         placeholder="Buscar por cliente..."
         style={{
@@ -3197,7 +3228,7 @@ function UsersScreen({ pushToast, currentUser }) {
   }
 
   return (
-    <div style={{ display: "grid", gap: 12, padding: '0 16px' }}>
+    <div style={{ display: "grid", gap: 12, padding: '16px 16px 0' }}>
       <div style={{ display: "flex", gap: 8 }}>
         {tabBtn("users", "Usuarios")}
         {tabBtn("roles", "Roles")}

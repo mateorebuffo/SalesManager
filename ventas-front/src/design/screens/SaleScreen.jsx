@@ -60,8 +60,8 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
     return Number.isFinite(n) && n >= 0 ? n : priceFor(l.p);
   };
 
-  const total = lines.reduce((s, l) => s + linePrice(l) * l.q, 0);
-  const count = lines.reduce((s, l) => s + l.q, 0);
+  const total = lines.reduce((s, l) => s + linePrice(l) * (Number(l.q) || 0), 0);
+  const count = lines.reduce((s, l) => s + (Number(l.q) || 0), 0);
 
   const parcialPaid = parcial
     ? (Number(parcialAmounts.crypto) || 0) + (Number(parcialAmounts.cash) || 0) + (Number(parcialAmounts.transfer) || 0)
@@ -71,13 +71,12 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
   const addProduct = (p) => {
     setCart(prev => {
       const i = prev.find(x => x.productId === p.id);
-      if (i) return prev.map(x => x.productId === p.id ? { ...x, q: x.q + 1 } : x);
-      return [...prev, { productId: p.id, q: 1, price: String(priceFor(p)) }];
+      if (i) return prev.map(x => x.productId === p.id ? { ...x, q: String((Number(x.q) || 0) + 1) } : x);
+      return [...prev, { productId: p.id, q: '', price: String(priceFor(p)) }];
     });
   };
   const setQty = (productId, val) => {
-    const n = Math.max(1, parseInt(val) || 1);
-    setCart(c => c.map(x => x.productId === productId ? { ...x, q: n } : x));
+    setCart(c => c.map(x => x.productId === productId ? { ...x, q: val } : x));
   };
   const setPrice = (productId, val) =>
     setCart(c => c.map(x => x.productId === productId ? { ...x, price: val.replace(',', '.') } : x));
@@ -86,6 +85,8 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
 
   async function submit(force = false) {
     if (lines.length === 0) return;
+    const emptyQty = lines.find(l => !(Number(l.q) > 0));
+    if (emptyQty) { pushToast?.('error', `"${emptyQty.p.name}" no tiene cantidad`); return; }
     if (!client) { pushToast?.('error', 'Seleccioná un cliente'); return; }
     if (parcial && parcialPaid > total + 0.001) {
       pushToast?.('error', `Los pagos parciales ($${parcialPaid.toFixed(2)}) superan el total`); return;
@@ -109,7 +110,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
         notes: null,
         items: lines.map(l => ({
           product_id: l.p.id,
-          quantity: l.q,
+          quantity: Number(l.q),
           unit_price: linePrice(l),
           notes: null,
         })),
@@ -177,7 +178,8 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
     const productLines = lines
       .map(l => {
         const up = linePrice(l);
-        return `• ${l.p.name} — $${up.toFixed(2)} c/u × ${l.q} = $${(up * l.q).toFixed(2)}`;
+        const qNum = Number(l.q) || 0;
+        return `• ${l.p.name} — $${up.toFixed(2)} c/u × ${qNum} = $${(up * qNum).toFixed(2)}`;
       })
       .join('\n');
     let payLines;
@@ -211,6 +213,8 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
   }
 
   async function copyPresupuesto() {
+    const empty = lines.find(l => !(Number(l.q) > 0));
+    if (empty) { pushToast?.('error', `"${empty.p.name}" no tiene cantidad`); return; }
     try {
       await navigator.clipboard.writeText(buildPresupuesto());
       pushToast?.('success', '¡Presupuesto copiado!');
@@ -224,7 +228,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
     <>
       {/* Header */}
       <div style={{
-        padding: desktop ? '0 0 18px' : '28px 20px 8px',
+        padding: desktop ? '0 0 18px' : '16px 20px 8px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
       }}>
         <div>
@@ -311,7 +315,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
                 </div>
                 <QtyInput theme={theme} value={l.q} onChange={(v) => setQty(l.productId, v)} />
                 <div style={{ fontFamily: FONT_MONO, fontWeight: 600, fontSize: 14.5, color: theme.text, width: 76, textAlign: 'right' }}>
-                  {money(linePrice(l) * l.q)}
+                  {money(linePrice(l) * (Number(l.q) || 0))}
                 </div>
                 <button onClick={() => removeLine(l.productId)} style={{
                   width: 28, height: 28, borderRadius: 14,

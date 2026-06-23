@@ -189,6 +189,7 @@ export function AppShell({ theme, screen, setScreen, currentUser, onLogout, chil
     <div style={{
       minHeight: '100vh', background: theme.page,
       fontFamily: FONT_UI, color: theme.text,
+      paddingTop: 'env(safe-area-inset-top, 0px)',
       paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)',
       overflowX: 'hidden',
     }}>

@@ -240,6 +240,21 @@ def update_sale(sale_id: int, payload: SaleUpdate, force: bool = False, db: Sess
     )
 
 
+@router.delete("/{sale_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_sale(
+    sale_id: int,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Solo un administrador puede eliminar ventas.")
+    sale = db.query(Sale).filter(Sale.id == sale_id).first()
+    if not sale:
+        raise HTTPException(status_code=404, detail="Venta no existe.")
+    db.delete(sale)
+    db.commit()
+
+
 @router.post("/{sale_id}/payments", response_model=SaleBalanceOut, status_code=status.HTTP_201_CREATED)
 def add_payment(sale_id: int, payload: PaymentCreate, db: Session = Depends(get_db)):
     sale = db.query(Sale).filter(Sale.id == sale_id).first()

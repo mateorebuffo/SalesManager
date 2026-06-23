@@ -108,7 +108,7 @@ export function SectionHeader({ theme, title, action, onAction }) {
 // ─────────────────────────────────────────────────────────────
 export function TopBar({ theme, title, subtitle, leading, trailing, large = false }) {
   return (
-    <div style={{ paddingTop: 28, padding: '28px 20px 8px', background: theme.page }}>
+    <div style={{ padding: '16px 20px 8px', background: theme.page }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 36 }}>
         {leading}
         {!large && (
