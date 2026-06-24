@@ -4,7 +4,7 @@ from typing import List
 
 from ..database import get_db
 from ..models import Client
-from ..schemas import ClientCreate, ClientOut, SupplierPaymentCreate, SupplierPaymentOut, SupplierPurchaseRow
+from ..schemas import ClientCreate, ClientOut, ClientUpdate, SupplierPaymentCreate, SupplierPaymentOut, SupplierPurchaseRow
 
 from sqlalchemy import func
 from decimal import Decimal
@@ -55,6 +55,28 @@ def list_clients(is_supplier: bool = None, db: Session = Depends(get_db)):
     if is_supplier is not None:
         q = q.filter(Client.is_supplier == is_supplier)
     return q.order_by(Client.id.desc()).all()
+
+@router.put("/{client_id}", response_model=ClientOut)
+def update_client(client_id: int, payload: ClientUpdate, db: Session = Depends(get_db)):
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+    if payload.name is not None:
+        name = payload.name.strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Nombre requerido.")
+        client.name = name
+    if payload.phone is not None:
+        client.phone = payload.phone or None
+    if payload.notes is not None:
+        client.notes = payload.notes or None
+    if payload.price_list_id is not None:
+        client.price_list_id = payload.price_list_id
+    if payload.is_supplier is not None:
+        client.is_supplier = payload.is_supplier
+    db.commit()
+    db.refresh(client)
+    return client
 
 @router.get("/{client_id}/statement", response_model=ClientStatementOut)
 def client_statement(client_id: int, db: Session = Depends(get_db)):

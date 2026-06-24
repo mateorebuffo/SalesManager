@@ -2934,7 +2934,7 @@ function DebtorsScreen({ pushToast }) {
 }
 
 /** Pantalla: Proveedores */
-function SuppliersScreen({ suppliers, pushToast, onSupplierCreated }) {
+function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCreated }) {
   const supplierRef = useRef(null);
   const [supplierQuery, setSupplierQuery] = useState("");
   const [selectedSupplier, setSelectedSupplier] = useState(null);
@@ -2947,10 +2947,14 @@ function SuppliersScreen({ suppliers, pushToast, onSupplierCreated }) {
   const [statementLoading, setStatementLoading] = useState(false);
 
   const [showNewSupplier, setShowNewSupplier] = useState(false);
+  const [nsMode, setNsMode] = useState("new"); // "new" | "existing"
   const [nsName, setNsName] = useState("");
   const [nsPhone, setNsPhone] = useState("");
   const [nsSubmitting, setNsSubmitting] = useState(false);
   const nsNameRef = useRef(null);
+  const [nsExistingQuery, setNsExistingQuery] = useState("");
+  const [nsExistingSelected, setNsExistingSelected] = useState(null);
+  const [nsConvertSubmitting, setNsConvertSubmitting] = useState(false);
 
   const [payAmount, setPayAmount] = useState("");
   const [payNotes, setPayNotes] = useState("");
@@ -3005,6 +3009,23 @@ function SuppliersScreen({ suppliers, pushToast, onSupplierCreated }) {
       onSupplierCreated?.();
     } catch (e) { pushToast(e.message || "Error", "error"); }
     finally { setNsSubmitting(false); }
+  };
+
+  const convertToSupplier = async () => {
+    if (!nsExistingSelected) return;
+    setNsConvertSubmitting(true);
+    try {
+      const res = await apiFetch(`${API}/clients/${nsExistingSelected.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_supplier: true }),
+      });
+      if (!res.ok) throw new Error(((await res.json().catch(() => ({}))).detail) || "Error");
+      setNsExistingQuery(""); setNsExistingSelected(null); setShowNewSupplier(false);
+      pushToast(`${nsExistingSelected.name} marcado como proveedor ✅`, "success");
+      onSupplierCreated?.();
+    } catch (e) { pushToast(e.message || "Error", "error"); }
+    finally { setNsConvertSubmitting(false); }
   };
 
   const submitPayment = async () => {
@@ -3065,16 +3086,44 @@ function SuppliersScreen({ suppliers, pushToast, onSupplierCreated }) {
 
       {showNewSupplier && (
         <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 10, marginBottom: 4 }}>
-          <div style={{ fontWeight: 900 }}>Crear proveedor</div>
-          <input ref={nsNameRef} placeholder="Nombre" style={inputStyle} value={nsName}
-            onChange={e => setNsName(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); submitNewSupplier(); } }} />
-          <input inputMode="tel" placeholder="Teléfono (opcional)" style={inputStyle}
-            value={nsPhone} onChange={e => setNsPhone(e.target.value)} />
-          <button type="button" disabled={nsSubmitting} onClick={submitNewSupplier}
-            style={{ height: 52, borderRadius: 12, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", fontWeight: 900, fontSize: 16, opacity: nsSubmitting ? 0.7 : 1, cursor: nsSubmitting ? "not-allowed" : "pointer" }}>
-            {nsSubmitting ? "Creando..." : "Crear proveedor"}
-          </button>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button type="button" onClick={() => setNsMode("new")} style={{ flex: 1, height: 36, borderRadius: 10, border: nsMode === "new" ? "1px solid #5C82FF" : "1px solid #1F2A4A", background: nsMode === "new" ? "#1A2453" : "transparent", color: nsMode === "new" ? "#5C82FF" : "#6E7A98", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Nuevo</button>
+            <button type="button" onClick={() => setNsMode("existing")} style={{ flex: 1, height: 36, borderRadius: 10, border: nsMode === "existing" ? "1px solid #5C82FF" : "1px solid #1F2A4A", background: nsMode === "existing" ? "#1A2453" : "transparent", color: nsMode === "existing" ? "#5C82FF" : "#6E7A98", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Desde cliente existente</button>
+          </div>
+          {nsMode === "new" ? (
+            <>
+              <input ref={nsNameRef} placeholder="Nombre" style={inputStyle} value={nsName}
+                onChange={e => setNsName(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); submitNewSupplier(); } }} />
+              <input inputMode="tel" placeholder="Teléfono (opcional)" style={inputStyle}
+                value={nsPhone} onChange={e => setNsPhone(e.target.value)} />
+              <button type="button" disabled={nsSubmitting} onClick={submitNewSupplier}
+                style={{ height: 52, borderRadius: 12, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", fontWeight: 900, fontSize: 16, opacity: nsSubmitting ? 0.7 : 1, cursor: nsSubmitting ? "not-allowed" : "pointer" }}>
+                {nsSubmitting ? "Creando..." : "Crear proveedor"}
+              </button>
+            </>
+          ) : (
+            <>
+              <input placeholder="Buscar cliente..." style={inputStyle} value={nsExistingQuery}
+                onChange={e => { setNsExistingQuery(e.target.value); setNsExistingSelected(null); }} />
+              {nsExistingQuery.trim() && (
+                <div style={{ border: "1px solid #1F2A4A", borderRadius: 10, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
+                  {allClients
+                    .filter(c => !c.is_supplier && c.name.toLowerCase().includes(nsExistingQuery.toLowerCase()))
+                    .map(c => (
+                      <button key={c.id} type="button" onClick={() => { setNsExistingSelected(c); setNsExistingQuery(c.name); }}
+                        style={{ width: "100%", padding: "10px 12px", background: nsExistingSelected?.id === c.id ? "#1A2453" : "#121A33", border: "none", borderBottom: "1px solid #1F2A4A", color: nsExistingSelected?.id === c.id ? "#5C82FF" : "#fff", textAlign: "left", cursor: "pointer", fontSize: 14 }}>
+                        {c.name}{c.phone ? ` · ${c.phone}` : ""}
+                      </button>
+                    ))}
+                </div>
+              )}
+              <button type="button" disabled={!nsExistingSelected || nsConvertSubmitting} onClick={convertToSupplier}
+                style={{ height: 52, borderRadius: 12, border: "none", background: nsExistingSelected ? "#5C82FF" : "#1F2A4A", color: "#fff", fontWeight: 900, fontSize: 16, opacity: (!nsExistingSelected || nsConvertSubmitting) ? 0.6 : 1, cursor: (!nsExistingSelected || nsConvertSubmitting) ? "not-allowed" : "pointer" }}>
+                {nsConvertSubmitting ? "Convirtiendo..." : nsExistingSelected ? `Marcar "${nsExistingSelected.name}" como proveedor` : "Seleccioná un cliente"}
+              </button>
+            </>
+          )}
         </div>
       )}
 
@@ -3828,6 +3877,7 @@ function AppShell({ onLogout, currentUser }) {
         ) : screen === "suppliers" ? (
           <SuppliersScreen
             suppliers={clients.filter(c => c.is_supplier)}
+            allClients={clients}
             pushToast={pushToast} onSupplierCreated={refreshClients}
           />
         ) : screen === "users" ? (

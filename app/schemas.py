@@ -227,6 +227,13 @@ class ClientOut(BaseModel):
     class Config:
         from_attributes = True
 
+class ClientUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    notes: Optional[str] = None
+    price_list_id: Optional[int] = None
+    is_supplier: Optional[bool] = None
+
 class SaleItemOut(BaseModel):
     id: int
     product_id: int
