@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 from ..auth import CurrentUser, get_current_user
 from ..database import get_db
-from ..models import Client, Product, Sale, SaleItem, Payment, StockItem, StockEntry
+from ..models import Client, Product, Sale, SaleItem, Payment, StockItem, StockEntry, Notification
 from ..schemas import SaleCreate, SaleSummaryOut, PaymentCreate, SaleBalanceOut, SaleDetailOut, SaleItemOut, SaleUpdate
 
 logger = logging.getLogger(__name__)
@@ -125,6 +125,30 @@ def create_sale(
 
     db.commit()
 
+    # Notificación para operadores (no admin)
+    if current_user.role != "admin":
+        product_map2 = {p.id: p for p in db.query(Product).filter(Product.id.in_([i.product_id for i in payload.items])).all()}
+        db.add(Notification(
+            triggered_by_id=current_user.id,
+            triggered_by_username=current_user.username,
+            action_type="nueva_venta",
+            detail={
+                "sale_id": sale.id,
+                "client_name": client.name,
+                "sale_type": sale_type,
+                "items": [
+                    {
+                        "producto": product_map2[i.product_id].name if i.product_id in product_map2 else str(i.product_id),
+                        "cantidad": float(i.quantity),
+                        "precio": float(i.unit_price),
+                    }
+                    for i in payload.items
+                ],
+                "total": float(total),
+            }
+        ))
+        db.commit()
+
     # Para compras: crear StockEntry automático con los items adquiridos
     if sale_type == "purchase":
         entry = StockEntry(
@@ -184,7 +208,13 @@ def get_sale(sale_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{sale_id}", response_model=SaleSummaryOut)
-def update_sale(sale_id: int, payload: SaleUpdate, force: bool = False, db: Session = Depends(get_db)):
+def update_sale(
+    sale_id: int,
+    payload: SaleUpdate,
+    force: bool = False,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
     sale = db.query(Sale).filter(Sale.id == sale_id).first()
     if not sale:
         raise HTTPException(status_code=404, detail="Venta no existe.")
@@ -244,6 +274,31 @@ def update_sale(sale_id: int, payload: SaleUpdate, force: bool = False, db: Sess
         ))
 
     db.commit()
+
+    # Notificación para operadores (no admin)
+    if current_user.role != "admin":
+        client = db.query(Client).filter(Client.id == sale.client_id).first()
+        product_ids2 = [i.product_id for i in payload.items]
+        product_map2 = {p.id: p for p in db.query(Product).filter(Product.id.in_(product_ids2)).all()}
+        db.add(Notification(
+            triggered_by_id=current_user.id,
+            triggered_by_username=current_user.username,
+            action_type="edicion_venta",
+            detail={
+                "sale_id": sale_id,
+                "client_name": client.name if client else None,
+                "items": [
+                    {
+                        "producto": product_map2[i.product_id].name if i.product_id in product_map2 else str(i.product_id),
+                        "cantidad": float(i.quantity),
+                        "precio": float(i.unit_price),
+                    }
+                    for i in payload.items
+                ],
+                "total": float(total),
+            }
+        ))
+        db.commit()
 
     paid = db.query(func.coalesce(func.sum(Payment.amount), 0)) \
              .filter(Payment.sale_id == sale_id).scalar()

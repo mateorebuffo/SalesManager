@@ -463,3 +463,15 @@ class RoleUpdate(BaseModel):
         return v
 
     model_config = {"from_attributes": True}
+
+
+# ── Notificaciones ────────────────────────────────────────────────────────────
+
+class NotificationOut(BaseModel):
+    id: int
+    triggered_by_username: str
+    action_type: str
+    detail: dict
+    created_at: datetime
+    is_read: bool
+    model_config = {"from_attributes": True}

@@ -3,8 +3,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List
 
+from ..auth import CurrentUser, get_current_user
 from ..database import get_db
-from ..models import Product, ProductPrice, PriceList
+from ..models import Product, ProductPrice, PriceList, Notification
 from ..schemas import ProductCreate, ProductUpdate, ProductOut, ProductPriceOut, ProductPriceUpsert
 
 router = APIRouter(prefix="/products", tags=["products"])
@@ -39,7 +40,11 @@ def _build_product_out(product: Product, db: Session) -> ProductOut:
 
 
 @router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
-def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
+def create_product(
+    payload: ProductCreate,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
     existing = db.query(Product).filter(
         Product.name == payload.name,
         Product.type == payload.type,
@@ -61,6 +66,16 @@ def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=409, detail="Ya existe un producto con ese nombre en ese tipo.")
     db.refresh(product)
+
+    if current_user.role != "admin":
+        db.add(Notification(
+            triggered_by_id=current_user.id,
+            triggered_by_username=current_user.username,
+            action_type="nuevo_producto",
+            detail={"product_id": product.id, "nombre": product.name, "tipo": product.type},
+        ))
+        db.commit()
+
     return _build_product_out(product, db)
 
 
@@ -77,7 +92,12 @@ def list_products(
 
 
 @router.put("/{product_id}", response_model=ProductOut)
-def update_product(product_id: int, payload: ProductUpdate, db: Session = Depends(get_db)):
+def update_product(
+    product_id: int,
+    payload: ProductUpdate,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Producto no existe.")
@@ -94,6 +114,16 @@ def update_product(product_id: int, payload: ProductUpdate, db: Session = Depend
         db.rollback()
         raise HTTPException(status_code=409, detail="Ya existe un producto con ese nombre en ese tipo.")
     db.refresh(product)
+
+    if current_user.role != "admin":
+        db.add(Notification(
+            triggered_by_id=current_user.id,
+            triggered_by_username=current_user.username,
+            action_type="edicion_producto",
+            detail={"product_id": product.id, "nombre": product.name, "tipo": product.type, "activo": product.active},
+        ))
+        db.commit()
+
     return _build_product_out(product, db)
 
 

@@ -159,3 +159,15 @@ class User(Base):
     role = Column(String(50), nullable=False, server_default="operator")  # nombre del rol
     active = Column(Boolean, nullable=False, server_default="true")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    triggered_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    triggered_by_username = Column(String(80), nullable=False)
+    action_type = Column(String(50), nullable=False)
+    detail = Column(JSON, nullable=False, default=dict)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    is_read = Column(Boolean, nullable=False, server_default="false")

@@ -4,8 +4,9 @@ from sqlalchemy import func
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
+from ..auth import CurrentUser, get_current_user
 from ..database import get_db
-from ..models import Product, StockEntry, StockItem, SaleItem
+from ..models import Product, StockEntry, StockItem, SaleItem, Notification
 from ..schemas import StockEntryCreate, StockEntryUpdate, StockEntryOut, ProductStockOut, StockItemOut
 
 router = APIRouter(prefix="/stock", tags=["stock"])
@@ -83,7 +84,11 @@ def list_stock_entries(db: Session = Depends(get_db)):
 
 
 @router.post("/entries", response_model=StockEntryOut, status_code=status.HTTP_201_CREATED)
-def create_stock_entry(payload: StockEntryCreate, db: Session = Depends(get_db)):
+def create_stock_entry(
+    payload: StockEntryCreate,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
     product_ids = [it.product_id for it in payload.items]
     products = db.query(Product).filter(Product.id.in_(product_ids), Product.active == True).all()  # noqa: E712
     if len(products) != len(set(product_ids)):
@@ -113,6 +118,19 @@ def create_stock_entry(payload: StockEntryCreate, db: Session = Depends(get_db))
         ))
 
     db.commit()
+
+    if current_user.role != "admin":
+        db.add(Notification(
+            triggered_by_id=current_user.id,
+            triggered_by_username=current_user.username,
+            action_type="nueva_entrada_stock",
+            detail={
+                "entry_id": entry.id,
+                "items": [{"producto": product_map[it.product_id].name, "cantidad": float(it.quantity)} for it in payload.items],
+            },
+        ))
+        db.commit()
+
     return StockEntryOut(
         id=entry.id,
         entry_date=entry.entry_date,
@@ -123,7 +141,12 @@ def create_stock_entry(payload: StockEntryCreate, db: Session = Depends(get_db))
 
 
 @router.put("/entries/{entry_id}", response_model=StockEntryOut)
-def update_stock_entry(entry_id: int, payload: StockEntryUpdate, db: Session = Depends(get_db)):
+def update_stock_entry(
+    entry_id: int,
+    payload: StockEntryUpdate,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
     entry = (
         db.query(StockEntry)
         .options(selectinload(StockEntry.items).selectinload(StockItem.product))
@@ -178,6 +201,19 @@ def update_stock_entry(entry_id: int, payload: StockEntryUpdate, db: Session = D
         ]
 
     db.commit()
+
+    if current_user.role != "admin":
+        db.add(Notification(
+            triggered_by_id=current_user.id,
+            triggered_by_username=current_user.username,
+            action_type="edicion_entrada_stock",
+            detail={
+                "entry_id": entry_id,
+                "items_count": len(payload.items) if payload.items else 0,
+            },
+        ))
+        db.commit()
+
     return StockEntryOut(
         id=entry.id,
         entry_date=entry.entry_date,

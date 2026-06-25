@@ -102,23 +102,34 @@ function Sidebar({ theme, screen, setScreen, currentUser, onLogout }) {
 // ─────────────────────────────────────────────────────────────
 // Desktop top bar
 // ─────────────────────────────────────────────────────────────
-function DesktopTopBar({ theme }) {
+function DesktopTopBar({ theme, notifCount = 0, onBellClick }) {
   return (
     <div style={{
       height: 60, borderBottom: `1px solid ${theme.border}`, background: theme.surface,
       padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
       gap: 16, flexShrink: 0,
     }}>
-      <button style={{
-        width: 40, height: 40, borderRadius: 12, background: theme.surfaceSunk,
-        border: `1px solid ${theme.border}`, color: theme.text2, position: 'relative',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-      }}>
+      <button
+        onClick={onBellClick}
+        style={{
+          width: 40, height: 40, borderRadius: 12, background: theme.surfaceSunk,
+          border: `1px solid ${theme.border}`, color: theme.text2, position: 'relative',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+        }}
+      >
         <Bell size={20} />
-        <span style={{
-          position: 'absolute', top: 8, right: 9, width: 8, height: 8, borderRadius: 4,
-          background: theme.danger, border: `2px solid ${theme.surfaceSunk}`,
-        }} />
+        {notifCount > 0 && (
+          <span style={{
+            position: 'absolute', top: 4, right: 4,
+            background: theme.danger, color: '#fff',
+            borderRadius: 10, fontSize: 10, fontWeight: 700,
+            minWidth: 16, height: 16,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '0 3px', lineHeight: 1,
+          }}>
+            {notifCount > 99 ? '99+' : notifCount}
+          </span>
+        )}
       </button>
     </div>
   );
@@ -165,7 +176,7 @@ function BottomNav({ theme, screen, setScreen, currentUser }) {
 // ─────────────────────────────────────────────────────────────
 // AppShell — responsive wrapper
 // ─────────────────────────────────────────────────────────────
-export function AppShell({ theme, screen, setScreen, currentUser, onLogout, children }) {
+export function AppShell({ theme, screen, setScreen, currentUser, onLogout, children, notifCount, onBellClick }) {
   const desktop = useIsDesktop();
   if (desktop) {
     return (
@@ -176,7 +187,7 @@ export function AppShell({ theme, screen, setScreen, currentUser, onLogout, chil
         <Sidebar theme={theme} screen={screen} setScreen={setScreen}
                  currentUser={currentUser} onLogout={onLogout} />
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <DesktopTopBar theme={theme} />
+          <DesktopTopBar theme={theme} notifCount={notifCount} onBellClick={onBellClick} />
           <div style={{ flex: 1, overflow: 'auto', padding: 28 }}>
             {children}
           </div>

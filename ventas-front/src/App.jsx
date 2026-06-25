@@ -4121,6 +4121,9 @@ function AppShell({ onLogout, currentUser }) {
   const [products, setProducts] = useState([]);
   const [priceLists, setPriceLists] = useState([]);
   const [toasts, setToasts] = useState([]);
+  const [notifCount, setNotifCount] = useState(0);
+  const [notifList, setNotifList] = useState([]);
+  const [notifPanelOpen, setNotifPanelOpen] = useState(false);
 
   const theme = themes.dark;
 
@@ -4182,6 +4185,33 @@ function AppShell({ onLogout, currentUser }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Polling de notificaciones (solo admin)
+  useEffect(() => {
+    if (!currentUser || currentUser.role !== "admin") return;
+    const fetchCount = async () => {
+      try {
+        const res = await apiFetch(`${API}/notifications/count`);
+        if (res.ok) {
+          const data = await res.json();
+          setNotifCount(data.count || 0);
+        }
+      } catch {}
+    };
+    fetchCount();
+    const id = setInterval(fetchCount, 30000);
+    return () => clearInterval(id);
+  }, [currentUser]);
+
+  const openNotifPanel = async () => {
+    setNotifPanelOpen(true);
+    try {
+      const res = await apiFetch(`${API}/notifications`);
+      if (res.ok) setNotifList(await res.json());
+      await apiFetch(`${API}/notifications/read-all`, { method: "POST" });
+      setNotifCount(0);
+    } catch {}
+  };
+
   return (
     <>
       <ToastHost toasts={toasts} removeToast={removeToast} />
@@ -4191,6 +4221,8 @@ function AppShell({ onLogout, currentUser }) {
         setScreen={setScreen}
         currentUser={currentUser}
         onLogout={onLogout}
+        notifCount={notifCount}
+        onBellClick={openNotifPanel}
       >
         {screen === "sale" ? (
           <NewSaleScreen clients={clients} products={products} pushToast={pushToast} />
@@ -4216,6 +4248,85 @@ function AppShell({ onLogout, currentUser }) {
           />
         )}
       </NewShell>
+
+      {notifPanelOpen && currentUser?.role === "admin" && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 2000 }}
+          onClick={() => setNotifPanelOpen(false)}
+        >
+          <div
+            style={{
+              position: "absolute", top: 60, right: 16,
+              width: "min(420px, calc(100vw - 32px))",
+              maxHeight: "80vh",
+              background: "#0D1526",
+              border: "1px solid #1F2A4A",
+              borderRadius: 16,
+              overflow: "hidden",
+              boxShadow: "0 8px 40px rgba(0,0,0,0.6)",
+              display: "flex", flexDirection: "column",
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{ padding: "14px 16px", borderBottom: "1px solid #1F2A4A", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontWeight: 900, fontSize: 15 }}>Notificaciones</div>
+              <button onClick={() => setNotifPanelOpen(false)} style={{ background: "none", border: "none", color: "#6E7A98", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
+            </div>
+            {/* List */}
+            <div style={{ overflowY: "auto", flex: 1 }}>
+              {notifList.length === 0 ? (
+                <div style={{ padding: 24, color: "#6E7A98", textAlign: "center" }}>Sin notificaciones.</div>
+              ) : notifList.map(n => {
+                const ACTION_LABELS = {
+                  nueva_venta: "Nueva venta",
+                  edicion_venta: "Venta editada",
+                  nuevo_producto: "Nuevo producto",
+                  edicion_producto: "Producto editado",
+                  nueva_entrada_stock: "Entrada de stock",
+                  edicion_entrada_stock: "Stock editado",
+                };
+                const label = ACTION_LABELS[n.action_type] || n.action_type;
+                const d = n.detail || {};
+                return (
+                  <div key={n.id} style={{
+                    padding: "12px 16px",
+                    borderBottom: "1px solid #1F2A4A",
+                    background: n.is_read ? "transparent" : "rgba(92,130,255,0.06)",
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
+                      <div style={{ fontWeight: 800, fontSize: 13, color: "#5C82FF" }}>{label}</div>
+                      <div style={{ fontSize: 11, color: "#6E7A98", whiteSpace: "nowrap" }}>{formatArDate(n.created_at)}</div>
+                    </div>
+                    <div style={{ fontSize: 12, color: "#A5B0CC", marginBottom: 4 }}>Por: <span style={{ fontWeight: 700, color: "#fff" }}>{n.triggered_by_username}</span></div>
+                    <div style={{ fontSize: 12, color: "#6E7A98" }}>
+                      {n.action_type === "nueva_venta" || n.action_type === "edicion_venta" ? (
+                        <>
+                          <span>Venta #{d.sale_id}</span>
+                          {d.client_name && <span> · {d.client_name}</span>}
+                          {d.total !== undefined && <span> · Total: ${Number(d.total).toFixed(2)}</span>}
+                          {d.items && <div style={{ marginTop: 4 }}>{d.items.slice(0, 3).map((it, i) => <div key={i}>• {it.producto} x{Number(it.cantidad).toFixed(2)}</div>)}{d.items.length > 3 && <div>... y {d.items.length - 3} más</div>}</div>}
+                        </>
+                      ) : n.action_type === "nuevo_producto" || n.action_type === "edicion_producto" ? (
+                        <>
+                          <span>{d.nombre}</span>
+                          {d.tipo && <span> · {d.tipo}</span>}
+                          {d.activo === false && <span style={{ color: "#f87171" }}> · Desactivado</span>}
+                        </>
+                      ) : n.action_type === "nueva_entrada_stock" || n.action_type === "edicion_entrada_stock" ? (
+                        <>
+                          <span>Entrada #{d.entry_id}</span>
+                          {d.items && <div style={{ marginTop: 4 }}>{d.items.slice(0, 3).map((it, i) => <div key={i}>• {it.producto} x{Number(it.cantidad).toFixed(2)}</div>)}{d.items.length > 3 && <div>... y {d.items.length - 3} más</div>}</div>}
+                        </>
+                      ) : JSON.stringify(d)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

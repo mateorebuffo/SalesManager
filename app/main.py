@@ -10,9 +10,10 @@ from slowapi.util import get_remote_address
 
 from .auth import get_current_user, hash_password
 from .database import engine, SessionLocal
-from .models import Base, Role, User, SupplierPayment  # noqa: F401 — ensures table is registered
+from .models import Base, Role, User, SupplierPayment, Notification  # noqa: F401 — ensures table is registered
 from .routers.auth import router as auth_router
 from .routers.clients import router as clients_router
+from .routers.notifications import router as notifications_router
 from .routers.products import router as products_router
 from .routers.price_lists import router as price_lists_router
 from .routers.roles import router as roles_router
@@ -104,13 +105,14 @@ _seed()
 app.include_router(auth_router)
 
 _auth = [Depends(get_current_user)]
-app.include_router(clients_router,     dependencies=_auth)
-app.include_router(products_router,    dependencies=_auth)
-app.include_router(sales_router,       dependencies=_auth)
-app.include_router(price_lists_router, dependencies=_auth)
-app.include_router(stock_router,       dependencies=_auth)
-app.include_router(users_router,       dependencies=_auth)
-app.include_router(roles_router,       dependencies=_auth)
+app.include_router(clients_router,       dependencies=_auth)
+app.include_router(notifications_router, dependencies=_auth)
+app.include_router(products_router,      dependencies=_auth)
+app.include_router(sales_router,         dependencies=_auth)
+app.include_router(price_lists_router,   dependencies=_auth)
+app.include_router(stock_router,         dependencies=_auth)
+app.include_router(users_router,         dependencies=_auth)
+app.include_router(roles_router,         dependencies=_auth)
 
 
 @app.get("/health")
