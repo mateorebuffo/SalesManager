@@ -3098,7 +3098,7 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
   };
 
   const buildPurchasesText = () => {
-    const totalOwed = purchases.reduce((s, p) => s + Number(p.balance || 0), 0);
+    const totalOwed = Math.max(0, purchases.reduce((s, p) => s + Number(p.total || 0), 0) - supplierPayments.reduce((s, p) => s + Number(p.amount || 0), 0));
     const header = `📌 Compras - ${selectedSupplier?.name || ""}\n🕒 ${fmtNowAR()}\n💰 Les debemos: $${fmtMoney(totalOwed)}\n\n📦 Compras\n`;
     if (!purchasesBySale.length) return header + "Sin compras.\n";
     const blocks = purchasesBySale.map(sale => {
@@ -3163,8 +3163,9 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
     padding: "0 12px", outline: "none", boxSizing: "border-box",
   };
 
-  const totalOwed = purchases.reduce((s, p) => s + Number(p.balance || 0), 0);
+  const totalPurchaseAmount = purchases.reduce((s, p) => s + Number(p.total || 0), 0);
   const totalPaid = supplierPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const totalOwed = Math.max(0, totalPurchaseAmount - totalPaid);
 
   return (
     <div style={{ display: "grid", gap: 12, padding: "16px 16px 0" }}>
