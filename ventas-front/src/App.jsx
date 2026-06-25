@@ -1413,6 +1413,55 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
         </div>
       )}
 
+      {/* Panel editar cliente */}
+      {showEditClient && (
+        <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 10, marginBottom: 4 }}>
+          <div style={{ fontWeight: 900, fontSize: 13, color: "#6E7A98", letterSpacing: 1, textTransform: "uppercase" }}>Editar cliente</div>
+          <input
+            placeholder="Nombre"
+            style={{ width: "100%", height: 48, fontSize: 16, borderRadius: 12, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
+            value={editName}
+            onChange={e => setEditName(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); submitEditClient(); } }}
+          />
+          <input
+            inputMode="tel"
+            placeholder="Teléfono (opcional)"
+            style={{ width: "100%", height: 48, fontSize: 16, borderRadius: 12, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
+            value={editPhone}
+            onChange={e => setEditPhone(e.target.value)}
+          />
+          <div style={{ display: "grid", gap: 6 }}>
+            <label style={{ color: "#fff", fontWeight: 800, fontSize: 13 }}>Lista de precios</label>
+            <select
+              value={editPriceListId}
+              onChange={e => setEditPriceListId(e.target.value)}
+              style={{ width: "100%", height: 48, borderRadius: 12, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box", fontSize: 16 }}
+            >
+              {(priceLists || []).map(pl => (
+                <option key={pl.id} value={String(pl.id)}>{pl.name}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            disabled={editSubmitting}
+            onClick={submitEditClient}
+            style={{ height: 48, borderRadius: 12, border: "none", background: editSubmitting ? "#3b3b8a" : "#5C82FF", color: "#fff", fontWeight: 900, fontSize: 15, opacity: editSubmitting ? 0.7 : 1, cursor: editSubmitting ? "not-allowed" : "pointer" }}
+          >
+            {editSubmitting ? "Guardando..." : "Guardar cambios"}
+          </button>
+          <button
+            type="button"
+            disabled={deactivateSubmitting}
+            onClick={deactivateClient}
+            style={{ height: 44, borderRadius: 12, border: "1px solid #f87171", background: "transparent", color: "#f87171", fontWeight: 900, fontSize: 14, opacity: deactivateSubmitting ? 0.7 : 1, cursor: deactivateSubmitting ? "not-allowed" : "pointer" }}
+          >
+            {deactivateSubmitting ? "Desactivando..." : "Desactivar cliente"}
+          </button>
+        </div>
+      )}
+
       {!selectedClient ? (
         <div style={{ color: "#6E7A98" }}>Elegí un cliente para ver su cuenta corriente.</div>
       ) : loading ? (
@@ -1436,55 +1485,6 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
               ${Number(statement.total_balance || 0).toFixed(2)}
             </div>
           </div>
-
-          {/* Panel editar cliente */}
-          {showEditClient && (
-            <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 10 }}>
-              <div style={{ fontWeight: 900, fontSize: 13, color: "#6E7A98", letterSpacing: 1, textTransform: "uppercase" }}>Editar cliente</div>
-              <input
-                placeholder="Nombre"
-                style={{ width: "100%", height: 48, fontSize: 16, borderRadius: 12, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
-                value={editName}
-                onChange={e => setEditName(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); submitEditClient(); } }}
-              />
-              <input
-                inputMode="tel"
-                placeholder="Teléfono (opcional)"
-                style={{ width: "100%", height: 48, fontSize: 16, borderRadius: 12, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
-                value={editPhone}
-                onChange={e => setEditPhone(e.target.value)}
-              />
-              <div style={{ display: "grid", gap: 6 }}>
-                <label style={{ color: "#fff", fontWeight: 800, fontSize: 13 }}>Lista de precios</label>
-                <select
-                  value={editPriceListId}
-                  onChange={e => setEditPriceListId(e.target.value)}
-                  style={{ width: "100%", height: 48, borderRadius: 12, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box", fontSize: 16 }}
-                >
-                  {(priceLists || []).map(pl => (
-                    <option key={pl.id} value={String(pl.id)}>{pl.name}</option>
-                  ))}
-                </select>
-              </div>
-              <button
-                type="button"
-                disabled={editSubmitting}
-                onClick={submitEditClient}
-                style={{ height: 48, borderRadius: 12, border: "none", background: editSubmitting ? "#3b3b8a" : "#5C82FF", color: "#fff", fontWeight: 900, fontSize: 15, opacity: editSubmitting ? 0.7 : 1, cursor: editSubmitting ? "not-allowed" : "pointer" }}
-              >
-                {editSubmitting ? "Guardando..." : "Guardar cambios"}
-              </button>
-              <button
-                type="button"
-                disabled={deactivateSubmitting}
-                onClick={deactivateClient}
-                style={{ height: 44, borderRadius: 12, border: "1px solid #f87171", background: "transparent", color: "#f87171", fontWeight: 900, fontSize: 14, opacity: deactivateSubmitting ? 0.7 : 1, cursor: deactivateSubmitting ? "not-allowed" : "pointer" }}
-              >
-                {deactivateSubmitting ? "Desactivando..." : "Desactivar cliente"}
-              </button>
-            </div>
-          )}
 
           {/* Tabs historial */}
           <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 8 }}>
@@ -3408,6 +3408,43 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
         </div>
       )}
 
+      {/* Panel editar proveedor */}
+      {showEditSupplier && (
+        <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 10, marginBottom: 4 }}>
+          <div style={{ fontWeight: 900, fontSize: 13, color: "#6E7A98", letterSpacing: 1, textTransform: "uppercase" }}>Editar proveedor</div>
+          <input
+            placeholder="Nombre"
+            style={inputStyle}
+            value={editSName}
+            onChange={e => setEditSName(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); submitEditSupplier(); } }}
+          />
+          <input
+            inputMode="tel"
+            placeholder="Teléfono (opcional)"
+            style={inputStyle}
+            value={editSPhone}
+            onChange={e => setEditSPhone(e.target.value)}
+          />
+          <button
+            type="button"
+            disabled={editSSubmitting}
+            onClick={submitEditSupplier}
+            style={{ height: 48, borderRadius: 12, border: "none", background: editSSubmitting ? "#3b3b8a" : "#5C82FF", color: "#fff", fontWeight: 900, fontSize: 15, opacity: editSSubmitting ? 0.7 : 1, cursor: editSSubmitting ? "not-allowed" : "pointer" }}
+          >
+            {editSSubmitting ? "Guardando..." : "Guardar cambios"}
+          </button>
+          <button
+            type="button"
+            disabled={deactivateSSubmitting}
+            onClick={deactivateSupplier}
+            style={{ height: 44, borderRadius: 12, border: "1px solid #f87171", background: "transparent", color: "#f87171", fontWeight: 900, fontSize: 14, opacity: deactivateSSubmitting ? 0.7 : 1, cursor: deactivateSSubmitting ? "not-allowed" : "pointer" }}
+          >
+            {deactivateSSubmitting ? "Desactivando..." : "Desactivar proveedor"}
+          </button>
+        </div>
+      )}
+
       {!selectedSupplier ? (
         <div style={{ color: "#6E7A98" }}>Elegí un proveedor para ver sus datos.</div>
       ) : loading ? (
@@ -3426,43 +3463,6 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
               <div style={{ fontWeight: 900, fontSize: 20 }}>${totalPaid.toFixed(2)}</div>
             </div>
           </div>
-
-          {/* Panel editar proveedor */}
-          {showEditSupplier && (
-            <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 10 }}>
-              <div style={{ fontWeight: 900, fontSize: 13, color: "#6E7A98", letterSpacing: 1, textTransform: "uppercase" }}>Editar proveedor</div>
-              <input
-                placeholder="Nombre"
-                style={inputStyle}
-                value={editSName}
-                onChange={e => setEditSName(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); submitEditSupplier(); } }}
-              />
-              <input
-                inputMode="tel"
-                placeholder="Teléfono (opcional)"
-                style={inputStyle}
-                value={editSPhone}
-                onChange={e => setEditSPhone(e.target.value)}
-              />
-              <button
-                type="button"
-                disabled={editSSubmitting}
-                onClick={submitEditSupplier}
-                style={{ height: 48, borderRadius: 12, border: "none", background: editSSubmitting ? "#3b3b8a" : "#5C82FF", color: "#fff", fontWeight: 900, fontSize: 15, opacity: editSSubmitting ? 0.7 : 1, cursor: editSSubmitting ? "not-allowed" : "pointer" }}
-              >
-                {editSSubmitting ? "Guardando..." : "Guardar cambios"}
-              </button>
-              <button
-                type="button"
-                disabled={deactivateSSubmitting}
-                onClick={deactivateSupplier}
-                style={{ height: 44, borderRadius: 12, border: "1px solid #f87171", background: "transparent", color: "#f87171", fontWeight: 900, fontSize: 14, opacity: deactivateSSubmitting ? 0.7 : 1, cursor: deactivateSSubmitting ? "not-allowed" : "pointer" }}
-              >
-                {deactivateSSubmitting ? "Desactivando..." : "Desactivar proveedor"}
-              </button>
-            </div>
-          )}
 
           <div style={{ display: "flex", gap: 8 }}>
             <button style={tabBtnStyle(tab === "purchases")} onClick={() => setTab("purchases")}>Compras</button>
