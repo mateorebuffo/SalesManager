@@ -224,6 +224,7 @@ class ClientOut(BaseModel):
     notes: Optional[str] = None
     price_list_id: Optional[int] = None
     is_supplier: bool = False
+    active: bool = True
     class Config:
         from_attributes = True
 
@@ -233,6 +234,7 @@ class ClientUpdate(BaseModel):
     notes: Optional[str] = None
     price_list_id: Optional[int] = None
     is_supplier: Optional[bool] = None
+    active: Optional[bool] = None
 
 class SaleItemOut(BaseModel):
     id: int

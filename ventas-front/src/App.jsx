@@ -828,6 +828,14 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
   // Entregas
   const [showAllDeliveries, setShowAllDeliveries] = useState(false);
 
+  // Editar cliente
+  const [showEditClient, setShowEditClient] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editPriceListId, setEditPriceListId] = useState("");
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [deactivateSubmitting, setDeactivateSubmitting] = useState(false);
+
   // Nuevo cliente (formulario inline)
   const [showNewClient, setShowNewClient] = useState(false);
   const [ncName, setNcName] = useState("");
@@ -925,6 +933,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
         setPaymentsLoading(false);
 
         setClientView("deliveries");
+        setShowEditClient(false);
         return;
       }
 
@@ -1049,6 +1058,57 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
     } finally {
       setPaySubmitting(false);
     }
+  };
+
+  const openEditClient = () => {
+    const full = clients.find(c => c.id === selectedClient?.id);
+    setEditName(full?.name || selectedClient?.name || "");
+    setEditPhone(full?.phone || "");
+    setEditPriceListId(full?.price_list_id ? String(full.price_list_id) : "");
+    setShowEditClient(true);
+  };
+
+  const submitEditClient = async () => {
+    const n = editName.trim();
+    if (!n) { pushToast("Ingresá un nombre.", "error"); return; }
+    setEditSubmitting(true);
+    try {
+      const res = await apiFetch(`${API}/clients/${selectedClient.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: n,
+          phone: editPhone.trim() || null,
+          price_list_id: editPriceListId ? Number(editPriceListId) : null,
+        }),
+      });
+      if (!res.ok) throw new Error(((await res.json().catch(() => ({}))).detail) || "Error");
+      const updated = await res.json();
+      setSelectedClient({ id: updated.id, name: updated.name });
+      setShowEditClient(false);
+      pushToast("Cliente actualizado ✅", "success");
+      onClientCreated?.();
+    } catch (e) { pushToast(e.message || "Error", "error"); }
+    finally { setEditSubmitting(false); }
+  };
+
+  const deactivateClient = async () => {
+    if (!selectedClient) return;
+    setDeactivateSubmitting(true);
+    try {
+      const res = await apiFetch(`${API}/clients/${selectedClient.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: false }),
+      });
+      if (!res.ok) throw new Error(((await res.json().catch(() => ({}))).detail) || "Error");
+      pushToast("Cliente desactivado", "info");
+      setSelectedClient(null);
+      setShowEditClient(false);
+      setClientQuery("");
+      onClientCreated?.();
+    } catch (e) { pushToast(e.message || "Error", "error"); }
+    finally { setDeactivateSubmitting(false); }
   };
 
   const deliveriesBySale = useMemo(() => {
@@ -1347,13 +1407,79 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
               borderRadius: 14,
               padding: 14,
               boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
             }}
           >
-            <div style={{ color: "#6E7A98", fontSize: 12 }}>Saldo total</div>
-            <div style={{ fontWeight: 900, fontSize: 22 }}>
-              ${Number(statement.total_balance || 0).toFixed(2)}
+            <div>
+              <div style={{ color: "#6E7A98", fontSize: 12 }}>Saldo total</div>
+              <div style={{ fontWeight: 900, fontSize: 22 }}>
+                ${Number(statement.total_balance || 0).toFixed(2)}
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => showEditClient ? setShowEditClient(false) : openEditClient()}
+              style={{
+                height: 30, padding: "0 12px", borderRadius: 8,
+                border: showEditClient ? "1px solid #5C82FF" : "1px solid rgba(92,130,255,0.35)",
+                background: showEditClient ? "#1A2453" : "rgba(92,130,255,0.1)",
+                color: "#5C82FF", fontSize: 12, fontWeight: 800, cursor: "pointer", flexShrink: 0,
+              }}
+            >
+              {showEditClient ? "Cerrar" : "Editar"}
+            </button>
           </div>
+
+          {/* Panel editar cliente */}
+          {showEditClient && (
+            <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 10 }}>
+              <div style={{ fontWeight: 900, fontSize: 13, color: "#6E7A98", letterSpacing: 1, textTransform: "uppercase" }}>Editar cliente</div>
+              <input
+                placeholder="Nombre"
+                style={{ width: "100%", height: 48, fontSize: 16, borderRadius: 12, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); submitEditClient(); } }}
+              />
+              <input
+                inputMode="tel"
+                placeholder="Teléfono (opcional)"
+                style={{ width: "100%", height: 48, fontSize: 16, borderRadius: 12, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
+                value={editPhone}
+                onChange={e => setEditPhone(e.target.value)}
+              />
+              <div style={{ display: "grid", gap: 6 }}>
+                <label style={{ color: "#fff", fontWeight: 800, fontSize: 13 }}>Lista de precios</label>
+                <select
+                  value={editPriceListId}
+                  onChange={e => setEditPriceListId(e.target.value)}
+                  style={{ width: "100%", height: 48, borderRadius: 12, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box", fontSize: 16 }}
+                >
+                  {(priceLists || []).map(pl => (
+                    <option key={pl.id} value={String(pl.id)}>{pl.name}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                disabled={editSubmitting}
+                onClick={submitEditClient}
+                style={{ height: 48, borderRadius: 12, border: "none", background: editSubmitting ? "#3b3b8a" : "#5C82FF", color: "#fff", fontWeight: 900, fontSize: 15, opacity: editSubmitting ? 0.7 : 1, cursor: editSubmitting ? "not-allowed" : "pointer" }}
+              >
+                {editSubmitting ? "Guardando..." : "Guardar cambios"}
+              </button>
+              <button
+                type="button"
+                disabled={deactivateSubmitting}
+                onClick={deactivateClient}
+                style={{ height: 44, borderRadius: 12, border: "1px solid #f87171", background: "transparent", color: "#f87171", fontWeight: 900, fontSize: 14, opacity: deactivateSubmitting ? 0.7 : 1, cursor: deactivateSubmitting ? "not-allowed" : "pointer" }}
+              >
+                {deactivateSubmitting ? "Desactivando..." : "Desactivar cliente"}
+              </button>
+            </div>
+          )}
 
           {/* Tabs historial */}
           <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 8 }}>
@@ -2961,6 +3087,13 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
   const [payDate, setPayDate] = useState(() => localToday());
   const [paySubmitting, setPaySubmitting] = useState(false);
 
+  // Editar proveedor
+  const [showEditSupplier, setShowEditSupplier] = useState(false);
+  const [editSName, setEditSName] = useState("");
+  const [editSPhone, setEditSPhone] = useState("");
+  const [editSSubmitting, setEditSSubmitting] = useState(false);
+  const [deactivateSSubmitting, setDeactivateSSubmitting] = useState(false);
+
   useEffect(() => {
     if (showNewSupplier) setTimeout(() => nsNameRef.current?.focus(), 0);
   }, [showNewSupplier]);
@@ -2970,11 +3103,13 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
       setPurchases([]); setSupplierPayments([]); setStatement(null); setTab("purchases");
       setPurchaseDeliveriesData(null); setSaleDeliveriesData(null);
       setShowAllPurchases(false); setShowAllSales(false);
+      setShowEditSupplier(false);
       return;
     }
     setLoading(true);
     setTab("purchases");
     setStatement(null);
+    setShowEditSupplier(false);
     setPurchaseDeliveriesData(null); setSaleDeliveriesData(null);
     setShowAllPurchases(false); setShowAllSales(false);
     Promise.all([
@@ -3057,6 +3192,52 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
       pushToast("Pago registrado ✅", "success");
     } catch (e) { pushToast(e.message || "Error", "error"); }
     finally { setPaySubmitting(false); }
+  };
+
+  const openEditSupplier = () => {
+    const full = suppliers.find(s => s.id === selectedSupplier?.id);
+    setEditSName(full?.name || selectedSupplier?.name || "");
+    setEditSPhone(full?.phone || "");
+    setShowEditSupplier(true);
+  };
+
+  const submitEditSupplier = async () => {
+    const n = editSName.trim();
+    if (!n) { pushToast("Ingresá un nombre.", "error"); return; }
+    setEditSSubmitting(true);
+    try {
+      const res = await apiFetch(`${API}/clients/${selectedSupplier.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: n, phone: editSPhone.trim() || null }),
+      });
+      if (!res.ok) throw new Error(((await res.json().catch(() => ({}))).detail) || "Error");
+      const updated = await res.json();
+      setSelectedSupplier({ id: updated.id, name: updated.name });
+      setShowEditSupplier(false);
+      pushToast("Proveedor actualizado ✅", "success");
+      onSupplierCreated?.();
+    } catch (e) { pushToast(e.message || "Error", "error"); }
+    finally { setEditSSubmitting(false); }
+  };
+
+  const deactivateSupplier = async () => {
+    if (!selectedSupplier) return;
+    setDeactivateSSubmitting(true);
+    try {
+      const res = await apiFetch(`${API}/clients/${selectedSupplier.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: false }),
+      });
+      if (!res.ok) throw new Error(((await res.json().catch(() => ({}))).detail) || "Error");
+      pushToast("Proveedor desactivado", "info");
+      setSelectedSupplier(null);
+      setShowEditSupplier(false);
+      setSupplierQuery("");
+      onSupplierCreated?.();
+    } catch (e) { pushToast(e.message || "Error", "error"); }
+    finally { setDeactivateSSubmitting(false); }
   };
 
   // ── Grouped deliveries (item breakdown per sale) ──────────────────────────
@@ -3234,11 +3415,57 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
                 ${totalOwed.toFixed(2)}
               </div>
             </div>
-            <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 12 }}>
-              <div style={{ color: "#6E7A98", fontSize: 12 }}>Pagado a ellos</div>
-              <div style={{ fontWeight: 900, fontSize: 20 }}>${totalPaid.toFixed(2)}</div>
+            <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 12, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <div style={{ color: "#6E7A98", fontSize: 12 }}>Pagado a ellos</div>
+                <div style={{ fontWeight: 900, fontSize: 20 }}>${totalPaid.toFixed(2)}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => showEditSupplier ? setShowEditSupplier(false) : openEditSupplier()}
+                style={{ height: 28, padding: "0 10px", borderRadius: 8, border: showEditSupplier ? "1px solid #5C82FF" : "1px solid rgba(92,130,255,0.35)", background: showEditSupplier ? "#1A2453" : "rgba(92,130,255,0.1)", color: "#5C82FF", fontSize: 11, fontWeight: 800, cursor: "pointer", flexShrink: 0 }}
+              >
+                {showEditSupplier ? "Cerrar" : "Editar"}
+              </button>
             </div>
           </div>
+
+          {/* Panel editar proveedor */}
+          {showEditSupplier && (
+            <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 10 }}>
+              <div style={{ fontWeight: 900, fontSize: 13, color: "#6E7A98", letterSpacing: 1, textTransform: "uppercase" }}>Editar proveedor</div>
+              <input
+                placeholder="Nombre"
+                style={inputStyle}
+                value={editSName}
+                onChange={e => setEditSName(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); submitEditSupplier(); } }}
+              />
+              <input
+                inputMode="tel"
+                placeholder="Teléfono (opcional)"
+                style={inputStyle}
+                value={editSPhone}
+                onChange={e => setEditSPhone(e.target.value)}
+              />
+              <button
+                type="button"
+                disabled={editSSubmitting}
+                onClick={submitEditSupplier}
+                style={{ height: 48, borderRadius: 12, border: "none", background: editSSubmitting ? "#3b3b8a" : "#5C82FF", color: "#fff", fontWeight: 900, fontSize: 15, opacity: editSSubmitting ? 0.7 : 1, cursor: editSSubmitting ? "not-allowed" : "pointer" }}
+              >
+                {editSSubmitting ? "Guardando..." : "Guardar cambios"}
+              </button>
+              <button
+                type="button"
+                disabled={deactivateSSubmitting}
+                onClick={deactivateSupplier}
+                style={{ height: 44, borderRadius: 12, border: "1px solid #f87171", background: "transparent", color: "#f87171", fontWeight: 900, fontSize: 14, opacity: deactivateSSubmitting ? 0.7 : 1, cursor: deactivateSSubmitting ? "not-allowed" : "pointer" }}
+              >
+                {deactivateSSubmitting ? "Desactivando..." : "Desactivar proveedor"}
+              </button>
+            </div>
+          )}
 
           <div style={{ display: "flex", gap: 8 }}>
             <button style={tabBtnStyle(tab === "purchases")} onClick={() => setTab("purchases")}>Compras</button>

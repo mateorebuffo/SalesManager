@@ -13,6 +13,7 @@ class Client(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     price_list_id = Column(Integer, ForeignKey("price_lists.id"), nullable=True, index=True)
     is_supplier = Column(Boolean, nullable=False, server_default="false")
+    active = Column(Boolean, nullable=False, server_default="true")
     price_list = relationship("PriceList")
 
 class Product(Base):

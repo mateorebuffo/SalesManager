@@ -50,8 +50,8 @@ def create_client(payload: ClientCreate, db: Session = Depends(get_db)):
     return c
 
 @router.get("", response_model=List[ClientOut])
-def list_clients(is_supplier: bool = None, db: Session = Depends(get_db)):
-    q = db.query(Client)
+def list_clients(is_supplier: bool = None, active: bool = True, db: Session = Depends(get_db)):
+    q = db.query(Client).filter(Client.active == active)
     if is_supplier is not None:
         q = q.filter(Client.is_supplier == is_supplier)
     return q.order_by(Client.id.desc()).all()
@@ -74,6 +74,8 @@ def update_client(client_id: int, payload: ClientUpdate, db: Session = Depends(g
         client.price_list_id = payload.price_list_id
     if payload.is_supplier is not None:
         client.is_supplier = payload.is_supplier
+    if payload.active is not None:
+        client.active = payload.active
     db.commit()
     db.refresh(client)
     return client
@@ -297,7 +299,7 @@ def list_debtors(db: Session = Depends(get_db)):
         )
         .outerjoin(delivered_subq, delivered_subq.c.client_id == Client.id)
         .outerjoin(paid_subq, paid_subq.c.client_id == Client.id)
-        .filter(Client.is_supplier == False)  # noqa: E712
+        .filter(Client.is_supplier == False, Client.active == True)  # noqa: E712
         .all()
     )
 

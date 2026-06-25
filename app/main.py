@@ -42,6 +42,7 @@ def _migrate():
     from sqlalchemy import text
     stmts = [
         "ALTER TABLE clients ADD COLUMN IF NOT EXISTS is_supplier BOOLEAN NOT NULL DEFAULT FALSE",
+        "ALTER TABLE clients ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE",
         "ALTER TABLE sales ADD COLUMN IF NOT EXISTS sale_type VARCHAR(20) NOT NULL DEFAULT 'sale'",
     ]
     with engine.connect() as conn:
