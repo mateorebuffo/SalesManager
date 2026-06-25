@@ -139,6 +139,7 @@ function SearchDropdown({
   setSelected,
   maxResults = 12,
   onAdd,
+  onEdit,
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
@@ -190,28 +191,48 @@ function SearchDropdown({
             color: "#fff",
           }}
         >
-          <div style={{ fontWeight: 800 }}>{getLabel(selected)}</div>
+          <div style={{ fontWeight: 800, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getLabel(selected)}</div>
 
-          <button
-            type="button"
-            style={{
-              height: 44,
-              minWidth: 110,
-              borderRadius: 12,
-              border: "1px solid #2B3960",
-              background: "#0A1124",
-              color: "#fff",
-              fontWeight: 800,
-            }}
-            onClick={() => {
-              setSelected(null);
-              setQuery("");
-              setOpen(true);
-              setTimeout(() => inputRef?.current?.focus(), 0);
-            }}
-          >
-            Cambiar
-          </button>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+            {onEdit && (
+              <button
+                type="button"
+                style={{
+                  height: 44,
+                  padding: "0 14px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(92,130,255,0.4)",
+                  background: "rgba(92,130,255,0.1)",
+                  color: "#5C82FF",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+                onClick={onEdit}
+              >
+                Editar
+              </button>
+            )}
+            <button
+              type="button"
+              style={{
+                height: 44,
+                minWidth: 110,
+                borderRadius: 12,
+                border: "1px solid #2B3960",
+                background: "#0A1124",
+                color: "#fff",
+                fontWeight: 800,
+              }}
+              onClick={() => {
+                setSelected(null);
+                setQuery("");
+                setOpen(true);
+                setTimeout(() => inputRef?.current?.focus(), 0);
+              }}
+            >
+              Cambiar
+            </button>
+          </div>
         </div>
       ) : (
         <div
@@ -1286,6 +1307,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
         selected={selectedClient}
         setSelected={(c) => setSelectedClient(c ? { id: c.id, name: c.name } : null)}
         onAdd={() => setShowNewClient((v) => !v)}
+        onEdit={selectedClient ? () => (showEditClient ? setShowEditClient(false) : openEditClient()) : undefined}
       />
 
       {showNewClient && (
@@ -1407,29 +1429,12 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
               borderRadius: 14,
               padding: 14,
               boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
             }}
           >
-            <div>
-              <div style={{ color: "#6E7A98", fontSize: 12 }}>Saldo total</div>
-              <div style={{ fontWeight: 900, fontSize: 22 }}>
-                ${Number(statement.total_balance || 0).toFixed(2)}
-              </div>
+            <div style={{ color: "#6E7A98", fontSize: 12 }}>Saldo total</div>
+            <div style={{ fontWeight: 900, fontSize: 22 }}>
+              ${Number(statement.total_balance || 0).toFixed(2)}
             </div>
-            <button
-              type="button"
-              onClick={() => showEditClient ? setShowEditClient(false) : openEditClient()}
-              style={{
-                height: 30, padding: "0 12px", borderRadius: 8,
-                border: showEditClient ? "1px solid #5C82FF" : "1px solid rgba(92,130,255,0.35)",
-                background: showEditClient ? "#1A2453" : "rgba(92,130,255,0.1)",
-                color: "#5C82FF", fontSize: 12, fontWeight: 800, cursor: "pointer", flexShrink: 0,
-              }}
-            >
-              {showEditClient ? "Cerrar" : "Editar"}
-            </button>
           </div>
 
           {/* Panel editar cliente */}
@@ -3357,6 +3362,7 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
         selected={selectedSupplier}
         setSelected={c => { setSelectedSupplier(c ? { id: c.id, name: c.name } : null); setStatement(null); }}
         onAdd={() => setShowNewSupplier(v => !v)}
+        onEdit={selectedSupplier ? () => (showEditSupplier ? setShowEditSupplier(false) : openEditSupplier()) : undefined}
       />
 
       {showNewSupplier && (
@@ -3415,18 +3421,9 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
                 ${totalOwed.toFixed(2)}
               </div>
             </div>
-            <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 12, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div>
-                <div style={{ color: "#6E7A98", fontSize: 12 }}>Pagado a ellos</div>
-                <div style={{ fontWeight: 900, fontSize: 20 }}>${totalPaid.toFixed(2)}</div>
-              </div>
-              <button
-                type="button"
-                onClick={() => showEditSupplier ? setShowEditSupplier(false) : openEditSupplier()}
-                style={{ height: 28, padding: "0 10px", borderRadius: 8, border: showEditSupplier ? "1px solid #5C82FF" : "1px solid rgba(92,130,255,0.35)", background: showEditSupplier ? "#1A2453" : "rgba(92,130,255,0.1)", color: "#5C82FF", fontSize: 11, fontWeight: 800, cursor: "pointer", flexShrink: 0 }}
-              >
-                {showEditSupplier ? "Cerrar" : "Editar"}
-              </button>
+            <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 12 }}>
+              <div style={{ color: "#6E7A98", fontSize: 12 }}>Pagado a ellos</div>
+              <div style={{ fontWeight: 900, fontSize: 20 }}>${totalPaid.toFixed(2)}</div>
             </div>
           </div>
 
