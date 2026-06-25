@@ -3148,8 +3148,8 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
 
           <div style={{ display: "flex", gap: 8 }}>
             <button style={tabBtnStyle(tab === "purchases")} onClick={() => setTab("purchases")}>Compras</button>
-            <button style={tabBtnStyle(tab === "payments")} onClick={() => setTab("payments")}>Dinero</button>
             <button style={tabBtnStyle(tab === "sales")} onClick={() => setTab("sales")}>Ventas</button>
+            <button style={tabBtnStyle(tab === "payments")} onClick={() => setTab("payments")}>Dinero</button>
           </div>
 
           {tab === "purchases" && (
