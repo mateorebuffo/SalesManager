@@ -377,7 +377,7 @@ class SupplierPurchaseRow(BaseModel):
 
 # ── Usuarios ──────────────────────────────────────────────────────────────────
 
-_VALID_SCREENS = {"sale", "client", "debtors", "products", "stock"}
+_VALID_SCREENS = {"sale", "client", "debtors", "products", "stock", "suppliers"}
 
 class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=80)

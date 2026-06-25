@@ -11,7 +11,7 @@ from ..models import Role, User
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-ALL_PERMISSIONS = ["sale", "client", "debtors", "products", "stock"]
+ALL_PERMISSIONS = ["sale", "client", "debtors", "products", "stock", "suppliers"]
 
 
 @router.post("/token")

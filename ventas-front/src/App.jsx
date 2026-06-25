@@ -3358,9 +3358,10 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
 }
 
 const SCREEN_OPTIONS = [
-  { key: "sale",    label: "Nueva venta" },
-  { key: "client",  label: "Cliente" },
-  { key: "products",label: "Productos" },
+  { key: "sale",      label: "Nueva venta" },
+  { key: "client",    label: "Clientes" },
+  { key: "products",  label: "Productos" },
+  { key: "suppliers", label: "Proveedores" },
 ];
 
 /** Pantalla: Usuarios (solo admin) */
