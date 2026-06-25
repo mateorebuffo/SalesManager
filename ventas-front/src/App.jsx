@@ -2946,6 +2946,11 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
   const [loading, setLoading] = useState(false);
   const [statementLoading, setStatementLoading] = useState(false);
 
+  const [purchaseDeliveriesData, setPurchaseDeliveriesData] = useState(null);
+  const [saleDeliveriesData, setSaleDeliveriesData] = useState(null);
+  const [showAllPurchases, setShowAllPurchases] = useState(false);
+  const [showAllSales, setShowAllSales] = useState(false);
+
   const [showNewSupplier, setShowNewSupplier] = useState(false);
   const [nsMode, setNsMode] = useState("new"); // "new" | "existing"
   const [nsName, setNsName] = useState("");
@@ -2968,17 +2973,25 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
   useEffect(() => {
     if (!selectedSupplier) {
       setPurchases([]); setSupplierPayments([]); setStatement(null); setTab("purchases");
+      setPurchaseDeliveriesData(null); setSaleDeliveriesData(null);
+      setShowAllPurchases(false); setShowAllSales(false);
       return;
     }
     setLoading(true);
     setTab("purchases");
     setStatement(null);
+    setPurchaseDeliveriesData(null); setSaleDeliveriesData(null);
+    setShowAllPurchases(false); setShowAllSales(false);
     Promise.all([
       apiFetch(`${API}/clients/${selectedSupplier.id}/purchases`).then(r => r.json()),
       apiFetch(`${API}/clients/${selectedSupplier.id}/supplier-payments`).then(r => r.json()),
-    ]).then(([p, sp]) => {
+      apiFetch(`${API}/clients/${selectedSupplier.id}/deliveries?sale_type=purchase`).then(r => r.json()),
+      apiFetch(`${API}/clients/${selectedSupplier.id}/deliveries?sale_type=sale`).then(r => r.json()),
+    ]).then(([p, sp, pd, sd]) => {
       setPurchases(Array.isArray(p) ? p : []);
       setSupplierPayments(Array.isArray(sp) ? sp : []);
+      setPurchaseDeliveriesData(pd?.deliveries ? pd : null);
+      setSaleDeliveriesData(sd?.deliveries ? sd : null);
     }).catch(() => pushToast("Error cargando datos del proveedor", "error"))
       .finally(() => setLoading(false));
   }, [selectedSupplier]);
@@ -3049,6 +3062,91 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
       pushToast("Pago registrado ✅", "success");
     } catch (e) { pushToast(e.message || "Error", "error"); }
     finally { setPaySubmitting(false); }
+  };
+
+  // ── Grouped deliveries (item breakdown per sale) ──────────────────────────
+  const purchasesBySale = useMemo(() => {
+    const rows = purchaseDeliveriesData?.deliveries || [];
+    const map = new Map();
+    for (const r of rows) {
+      if (!map.has(r.sale_id)) map.set(r.sale_id, { sale_id: r.sale_id, sale_date: r.sale_date, rows: [], total: 0 });
+      const g = map.get(r.sale_id);
+      g.rows.push(r);
+      g.total += Number(r.subtotal || 0);
+    }
+    return Array.from(map.values()).sort((a, b) => new Date(b.sale_date) - new Date(a.sale_date) || b.sale_id - a.sale_id);
+  }, [purchaseDeliveriesData]);
+
+  const salesBySale = useMemo(() => {
+    const rows = saleDeliveriesData?.deliveries || [];
+    const map = new Map();
+    for (const r of rows) {
+      if (!map.has(r.sale_id)) map.set(r.sale_id, { sale_id: r.sale_id, sale_date: r.sale_date, rows: [], total: 0 });
+      const g = map.get(r.sale_id);
+      g.rows.push(r);
+      g.total += Number(r.subtotal || 0);
+    }
+    return Array.from(map.values()).sort((a, b) => new Date(b.sale_date) - new Date(a.sale_date) || b.sale_id - a.sale_id);
+  }, [saleDeliveriesData]);
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  const fmtMoney = (n) => { const v = Number(n || 0); return Number.isFinite(v) ? v.toFixed(2) : "0.00"; };
+  const fmtNowAR = () => new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" }).format(new Date());
+  const copyToClipboard = async (text) => {
+    try { await navigator.clipboard.writeText(text); pushToast("Copiado ✅", "success"); }
+    catch { try { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); pushToast("Copiado ✅", "success"); } catch { pushToast("No se pudo copiar", "error"); } }
+  };
+
+  const buildPurchasesText = () => {
+    const totalOwed = purchases.reduce((s, p) => s + Number(p.balance || 0), 0);
+    const header = `📌 Compras - ${selectedSupplier?.name || ""}\n🕒 ${fmtNowAR()}\n💰 Les debemos: $${fmtMoney(totalOwed)}\n\n📦 Compras\n`;
+    if (!purchasesBySale.length) return header + "Sin compras.\n";
+    const blocks = purchasesBySale.map(sale => {
+      const lines = sale.rows.map((r, i) => `- ${i+1}) ${r.product_name}${r.notes ? ` (${r.notes})` : ""} x${fmtMoney(r.quantity)} $${fmtMoney(r.unit_price)} Sub: $${fmtMoney(r.subtotal)}`);
+      const info = purchases.find(p => p.sale_id === sale.sale_id);
+      return `COMPRA #${sale.sale_id} (${formatArDate(sale.sale_date)})\n${lines.join("\n")}\nTOTAL: $${fmtMoney(sale.total)}${info ? `\nPAGADO: $${fmtMoney(info.paid)}` : ""}\n`;
+    });
+    return header + blocks.join("\n");
+  };
+
+  const buildPaymentsText = () => {
+    const header = `📌 Pagos a proveedor - ${selectedSupplier?.name || ""}\n🕒 ${fmtNowAR()}\n\n💵 Entregas de dinero\n`;
+    if (!supplierPayments.length) return header + "Sin pagos.\n";
+    const totalPaid = supplierPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+    const lines = supplierPayments.map(p => `- ${formatArDate(p.payment_date)}  $${fmtMoney(p.amount)}${p.notes ? ` "${p.notes}"` : ""}`);
+    return header + lines.join("\n") + `\nTOTAL: $${fmtMoney(totalPaid)}\n`;
+  };
+
+  // ── Shared sub-components ─────────────────────────────────────────────────
+  const exportBtnStyle = { width: "100%", height: 44, borderRadius: 10, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", fontWeight: 900, fontSize: 14, cursor: "pointer" };
+  const showMoreBtnStyle = { width: "100%", height: 48, borderRadius: 12, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", fontWeight: 900, marginTop: 10, cursor: "pointer" };
+
+  const DeliveryCard = ({ sale, labelPrefix, paidInfo }) => {
+    const paid = Number(paidInfo?.paid ?? 0);
+    const total = Number(paidInfo?.total ?? sale.total);
+    return (
+      <div style={{ border: "1px solid #1F2A4A", borderRadius: 14, background: "#121A33", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.25)" }}>
+        <div style={{ padding: 12, borderBottom: "1px solid #2a2a2a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontWeight: 900 }}>{labelPrefix} #{sale.sale_id}</div>
+          <div style={{ color: "#6E7A98", fontSize: 12 }}>{formatArDate(sale.sale_date)}</div>
+        </div>
+        <div style={{ padding: 12, display: "grid", gap: 10 }}>
+          {sale.rows.map((r, i) => (
+            <div key={`${r.sale_id}-${r.product_id}-${i}`} style={{ border: "1px solid #1F2A4A", borderRadius: 12, padding: 10, background: "#0A1124", display: "grid", gap: 6 }}>
+              <div style={{ fontWeight: 900 }}>{i+1}) {r.product_name}</div>
+              {r.notes && <div style={{ color: "#6E7A98", fontSize: 12 }}>Nota: {r.notes}</div>}
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#A5B0CC" }}><span>Cant</span><span style={{ fontWeight: 900 }}>{Number(r.quantity).toFixed(2)}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#A5B0CC" }}><span>Precio unit</span><span style={{ fontWeight: 900 }}>${Number(r.unit_price).toFixed(2)}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontWeight: 900 }}>Subtotal</span><span style={{ fontWeight: 900 }}>${Number(r.subtotal).toFixed(2)}</span></div>
+            </div>
+          ))}
+        </div>
+        <div style={{ borderTop: "1px solid #1F2A4A" }}>
+          <div style={{ padding: "10px 12px 4px", display: "flex", justifyContent: "space-between", fontWeight: 900 }}><div>TOTAL</div><div>${total.toFixed(2)}</div></div>
+          <div style={{ padding: "4px 12px 10px", display: "flex", justifyContent: "space-between", color: paid >= total ? "#4ade80" : paid > 0 ? "#facc15" : "#6E7A98", fontSize: 13, fontWeight: 700 }}><div>PAGADO</div><div>${paid.toFixed(2)}</div></div>
+        </div>
+      </div>
+    );
   };
 
   const tabBtnStyle = (active) => ({
@@ -3152,31 +3250,33 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
             <button style={tabBtnStyle(tab === "payments")} onClick={() => setTab("payments")}>Dinero</button>
           </div>
 
+          {/* ===== Compras ===== */}
           {tab === "purchases" && (
-            purchases.length === 0 ? (
-              <div style={{ color: "#6E7A98" }}>No hay compras registradas.</div>
-            ) : purchases.map(p => (
-              <div key={p.sale_id} style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 6 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ fontWeight: 900 }}>COMPRA #{p.sale_id}</div>
-                  <div style={{ color: "#6E7A98", fontSize: 12 }}>{formatArDate(p.sale_date)}</div>
+            <>
+              {purchasesBySale.length > 0 && (
+                <button type="button" onClick={() => copyToClipboard(buildPurchasesText())} style={exportBtnStyle}>
+                  Exportar compras
+                </button>
+              )}
+              {purchasesBySale.length === 0 ? (
+                <div style={{ color: "#6E7A98" }}>No hay compras registradas.</div>
+              ) : (
+                <div style={{ display: "grid", gap: 12 }}>
+                  {(showAllPurchases ? purchasesBySale : purchasesBySale.slice(0, 5)).map(sale => (
+                    <DeliveryCard key={sale.sale_id} sale={sale} labelPrefix="COMPRA"
+                      paidInfo={purchases.find(p => p.sale_id === sale.sale_id)} />
+                  ))}
                 </div>
-                {p.notes && <div style={{ color: "#6E7A98", fontSize: 13 }}>{p.notes}</div>}
-                <div style={{ display: "flex", justifyContent: "space-between", color: "#A5B0CC", fontSize: 14 }}>
-                  <span>Total</span><span style={{ fontWeight: 800 }}>${Number(p.total).toFixed(2)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", color: "#A5B0CC", fontSize: 14 }}>
-                  <span>Pagado</span><span style={{ fontWeight: 800, color: "#34d399" }}>${Number(p.paid).toFixed(2)}</span>
-                </div>
-                {Number(p.balance) > 0 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #1F2A4A", paddingTop: 6, marginTop: 2 }}>
-                    <span>Saldo</span><span style={{ color: "#f87171", fontWeight: 900 }}>${Number(p.balance).toFixed(2)}</span>
-                  </div>
-                )}
-              </div>
-            ))
+              )}
+              {purchasesBySale.length > 5 && (
+                <button type="button" onClick={() => setShowAllPurchases(v => !v)} style={showMoreBtnStyle}>
+                  {showAllPurchases ? "Mostrar menos" : `Mostrar más compras (${purchasesBySale.length - 5} más)`}
+                </button>
+              )}
+            </>
           )}
 
+          {/* ===== Dinero ===== */}
           {tab === "payments" && (
             <div style={{ display: "grid", gap: 12 }}>
               <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 10 }}>
@@ -3201,55 +3301,59 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
                   {paySubmitting ? "Registrando..." : "Confirmar entrega"}
                 </button>
               </div>
+              {supplierPayments.length > 0 && (
+                <button type="button" onClick={() => copyToClipboard(buildPaymentsText())} style={exportBtnStyle}>
+                  Exportar pagos
+                </button>
+              )}
               {supplierPayments.length === 0 ? (
                 <div style={{ color: "#6E7A98" }}>No hay entregas registradas.</div>
-              ) : supplierPayments.map(p => (
-                <div key={p.id} style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 12, display: "grid", gap: 6 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ fontWeight: 900 }}>Pago #{p.id}</div>
-                    <div style={{ color: "#6E7A98", fontSize: 12 }}>{formatArDate(p.payment_date)}</div>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900 }}>
-                    <span>Monto</span><span>${Number(p.amount || 0).toFixed(2)}</span>
-                  </div>
-                  {p.notes && <div style={{ color: "#6E7A98", fontSize: 13, whiteSpace: "pre-line" }}>{p.notes}</div>}
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: "55vh", overflowY: "auto" }}>
+                  {supplierPayments.map(p => (
+                    <div key={p.id} style={{ border: "1px solid #1F2A4A", background: "#121A33", borderRadius: 14, padding: 12, display: "grid", gap: 6, boxShadow: "0 2px 12px rgba(0,0,0,0.25)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ fontWeight: 900 }}>Pago #{p.id}</div>
+                        <div style={{ color: "#6E7A98", fontSize: 12 }}>{formatArDate(p.payment_date)}</div>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900 }}>
+                        <span>Monto</span><span>${Number(p.amount || 0).toFixed(2)}</span>
+                      </div>
+                      {p.notes && <div style={{ color: "#6E7A98", fontSize: 13, whiteSpace: "pre-line" }}>{p.notes}</div>}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           )}
 
+          {/* ===== Ventas ===== */}
           {tab === "sales" && (
-            statementLoading ? (
-              <div style={{ color: "#6E7A98" }}>Cargando ventas...</div>
-            ) : !statement ? null : statement.sales.length === 0 ? (
-              <div style={{ color: "#6E7A98" }}>No hay ventas registradas a este proveedor.</div>
-            ) : (
-              <>
-                <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14 }}>
+            <>
+              {salesBySale.length > 0 && statement && (
+                <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 12 }}>
                   <div style={{ color: "#6E7A98", fontSize: 12 }}>Saldo pendiente</div>
                   <div style={{ fontWeight: 900, fontSize: 22 }}>${Number(statement.total_balance || 0).toFixed(2)}</div>
                 </div>
-                {statement.sales.map(s => (
-                  <div key={s.sale_id} style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 6 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ fontWeight: 900 }}>VENTA #{s.sale_id}</div>
-                      <div style={{ color: "#6E7A98", fontSize: 12 }}>{formatArDate(s.sale_date)}</div>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", color: "#A5B0CC", fontSize: 14 }}>
-                      <span>Total</span><span style={{ fontWeight: 800 }}>${Number(s.total).toFixed(2)}</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", color: "#A5B0CC", fontSize: 14 }}>
-                      <span>Pagado</span><span style={{ fontWeight: 800 }}>${Number(s.paid).toFixed(2)}</span>
-                    </div>
-                    {Number(s.balance) > 0 && (
-                      <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #1F2A4A", paddingTop: 6 }}>
-                        <span>Saldo</span><span style={{ color: "#f87171", fontWeight: 900 }}>${Number(s.balance).toFixed(2)}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </>
-            )
+              )}
+              {statementLoading ? (
+                <div style={{ color: "#6E7A98" }}>Cargando ventas...</div>
+              ) : salesBySale.length === 0 ? (
+                <div style={{ color: "#6E7A98" }}>No hay ventas registradas a este proveedor.</div>
+              ) : (
+                <div style={{ display: "grid", gap: 12 }}>
+                  {(showAllSales ? salesBySale : salesBySale.slice(0, 5)).map(sale => (
+                    <DeliveryCard key={sale.sale_id} sale={sale} labelPrefix="VENTA"
+                      paidInfo={statement?.sales?.find(s => s.sale_id === sale.sale_id)} />
+                  ))}
+                </div>
+              )}
+              {salesBySale.length > 5 && (
+                <button type="button" onClick={() => setShowAllSales(v => !v)} style={showMoreBtnStyle}>
+                  {showAllSales ? "Mostrar menos" : `Mostrar más ventas (${salesBySale.length - 5} más)`}
+                </button>
+              )}
+            </>
           )}
         </>
       )}

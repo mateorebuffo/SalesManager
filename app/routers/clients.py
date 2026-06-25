@@ -157,12 +157,12 @@ def client_statement(client_id: int, db: Session = Depends(get_db)):
     )
 
 @router.get("/{client_id}/deliveries", response_model=ClientDeliveriesOut)
-def client_deliveries(client_id: int, db: Session = Depends(get_db)):
+def client_deliveries(client_id: int, sale_type: str = None, db: Session = Depends(get_db)):
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Cliente no existe.")
 
-    rows = (
+    q = (
         db.query(
             Sale.id.label("sale_id"),
             Sale.sale_date.label("sale_date"),
@@ -176,9 +176,10 @@ def client_deliveries(client_id: int, db: Session = Depends(get_db)):
         .join(SaleItem, SaleItem.sale_id == Sale.id)
         .join(Product, Product.id == SaleItem.product_id)
         .filter(Sale.client_id == client_id)
-        .order_by(Sale.sale_date.desc(), Sale.id.desc(), Product.name.asc())
-        .all()
     )
+    if sale_type:
+        q = q.filter(Sale.sale_type == sale_type)
+    rows = q.order_by(Sale.sale_date.desc(), Sale.id.desc(), Product.name.asc()).all()
 
     deliveries: list[ClientDeliveryRow] = []
     for r in rows:
