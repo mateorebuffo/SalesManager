@@ -68,64 +68,59 @@ async function apiFetch(url, options = {}) {
 /* =========================
    Toast (sin librerías)
 ========================= */
+const TOAST_COLOR = { success: "#5C82FF", error: "#f87171", info: "#5C82FF" };
+const TOAST_LABEL = { success: "OK", error: "Error", info: "Info" };
+
 function ToastHost({ toasts, removeToast }) {
   return (
-    <div
-      style={{
-        position: "fixed",
-        left: 0,
-        right: 0,
-        top: "calc(env(safe-area-inset-top, 0px) + 12px)",
-        zIndex: 9999,
-        pointerEvents: "none",
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        alignItems: "center",
-        padding: "0 12px",
-      }}
-    >
-      {toasts.map((t) => (
-        <div
-          key={t.id}
-          style={{
+    <div style={{
+      position: "fixed",
+      left: 0,
+      right: 0,
+      bottom: "calc(env(safe-area-inset-bottom, 0px) + 92px)",
+      zIndex: 9999,
+      pointerEvents: "none",
+      display: "flex",
+      flexDirection: "column-reverse",
+      gap: 10,
+      alignItems: "center",
+      padding: "0 12px",
+    }}>
+      {toasts.map((t) => {
+        const color = TOAST_COLOR[t.type] || TOAST_COLOR.info;
+        return (
+          <div key={t.id} style={{
             width: "min(520px, calc(100vw - 24px))",
             borderRadius: 14,
-            border: "1px solid #1F2A4A",
-            background: "#0A1124",
+            border: `1.5px solid ${color}`,
+            background: "#0D1526",
             color: "#fff",
             padding: "12px 12px",
-            boxShadow: "0 8px 30px rgba(0,0,0,.5)",
+            boxShadow: `0 8px 32px rgba(0,0,0,.6), 0 0 18px ${color}44`,
             display: "flex",
+            alignItems: "center",
             justifyContent: "space-between",
             gap: 12,
             pointerEvents: "auto",
-          }}
-        >
-          <div style={{ display: "grid", gap: 4 }}>
-            <div style={{ fontWeight: 900, fontSize: 13, color: "#6E7A98" }}>
-              {t.type === "success" ? "OK" : t.type === "error" ? "Error" : "Info"}
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              <div style={{ width: 4, borderRadius: 4, alignSelf: "stretch", background: color, flexShrink: 0 }} />
+              <div style={{ display: "grid", gap: 2 }}>
+                <div style={{ fontWeight: 900, fontSize: 12, color, letterSpacing: 0.5 }}>
+                  {TOAST_LABEL[t.type] || "Info"}
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{t.message}</div>
+              </div>
             </div>
-            <div style={{ fontWeight: 800 }}>{t.message}</div>
+            <button type="button" onClick={() => removeToast(t.id)} style={{
+              height: 34, minWidth: 38, borderRadius: 9,
+              border: `1px solid ${color}55`,
+              background: `${color}18`,
+              color, fontWeight: 900, fontSize: 15, cursor: "pointer", flexShrink: 0,
+            }}>✕</button>
           </div>
-
-          <button
-            type="button"
-            onClick={() => removeToast(t.id)}
-            style={{
-              height: 36,
-              minWidth: 40,
-              borderRadius: 10,
-              border: "1px solid #1F2A4A",
-              background: "#0A1124",
-              color: "#fff",
-              fontWeight: 900,
-            }}
-          >
-            ✕
-          </button>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
