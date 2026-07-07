@@ -443,6 +443,44 @@ def list_supplier_payments(client_id: int, db: Session = Depends(get_db)):
     )
 
 
+@router.put("/{client_id}/supplier-payments/{payment_id}", response_model=SupplierPaymentOut)
+def update_supplier_payment(
+    client_id: int, payment_id: int, payload: SupplierPaymentCreate, db: Session = Depends(get_db)
+):
+    sp = db.query(SupplierPayment).filter(
+        SupplierPayment.id == payment_id, SupplierPayment.supplier_id == client_id
+    ).first()
+    if not sp:
+        raise HTTPException(status_code=404, detail="Pago no existe.")
+
+    payment_dt = payload.payment_date
+    if payment_dt is None:
+        payment_dt = sp.payment_date
+    else:
+        if payment_dt.tzinfo is None:
+            payment_dt = payment_dt.replace(tzinfo=AR_TZ)
+        else:
+            payment_dt = payment_dt.astimezone(AR_TZ)
+
+    sp.amount = payload.amount
+    sp.notes = payload.notes
+    sp.payment_date = payment_dt
+    db.commit()
+    db.refresh(sp)
+    return sp
+
+
+@router.delete("/{client_id}/supplier-payments/{payment_id}", status_code=204)
+def delete_supplier_payment(client_id: int, payment_id: int, db: Session = Depends(get_db)):
+    sp = db.query(SupplierPayment).filter(
+        SupplierPayment.id == payment_id, SupplierPayment.supplier_id == client_id
+    ).first()
+    if not sp:
+        raise HTTPException(status_code=404, detail="Pago no existe.")
+    db.delete(sp)
+    db.commit()
+
+
 def ensure_default_price_list_id(db: Session) -> int:
     pl = db.query(PriceList).filter(PriceList.name == "General").first()
     if pl:

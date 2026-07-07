@@ -140,6 +140,19 @@ def create_stock_entry(
     )
 
 
+@router.delete("/entries/{entry_id}", status_code=204)
+def delete_stock_entry(
+    entry_id: int,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    entry = db.query(StockEntry).filter(StockEntry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Ingreso no existe.")
+    db.delete(entry)
+    db.commit()
+
+
 @router.put("/entries/{entry_id}", response_model=StockEntryOut)
 def update_stock_entry(
     entry_id: int,

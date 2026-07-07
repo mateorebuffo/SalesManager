@@ -844,6 +844,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
   const [editPaymentId, setEditPaymentId] = useState(null);
   const [editPayAmount, setEditPayAmount] = useState("");
   const [editPayNotes, setEditPayNotes] = useState("");
+  const [editPayDate, setEditPayDate] = useState("");
   const [editPaySubmitting, setEditPaySubmitting] = useState(false);
 
   // Entregas
@@ -1819,6 +1820,9 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                                   setEditPaymentId(p.payment_id);
                                   setEditPayAmount(String(Number(p.amount)));
                                   setEditPayNotes(p.notes || "");
+                                  const d = new Date(p.payment_date);
+                                  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                                  setEditPayDate(d.toISOString().slice(0, 10));
                                 }
                               }}
                               style={{
@@ -1848,6 +1852,19 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                                 color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box",
                               }}
                             />
+                            <input
+                              type="date"
+                              lang="en-GB"
+                              value={editPayDate}
+                              max={localToday()}
+                              onChange={(e) => setEditPayDate(e.target.value)}
+                              style={{
+                                height: 42, fontSize: 15, borderRadius: 10,
+                                border: "1px solid #1F2A4A", background: "#0A1124",
+                                color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box",
+                                cursor: "pointer", fontFamily: "inherit",
+                              }}
+                            />
                             <NotesCombo
                               placeholder="Notas (opcional)"
                               inputStyle={{
@@ -1873,7 +1890,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                                     {
                                       method: "PUT",
                                       headers: { "Content-Type": "application/json" },
-                                      body: JSON.stringify({ amount, notes: editPayNotes.trim() || null }),
+                                      body: JSON.stringify({ amount, notes: editPayNotes.trim() || null, payment_date: editPayDate ? new Date(editPayDate).toISOString() : undefined }),
                                     }
                                   );
                                   if (!res.ok) {
@@ -1988,6 +2005,9 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
   const [newPlName, setNewPlName] = useState("");
   const [plSubmitting, setPlSubmitting] = useState(false);
   const [showPlForm, setShowPlForm] = useState(false);
+  const [editingPl, setEditingPl] = useState(null);
+  const [editPlName, setEditPlName] = useState("");
+  const [editPlSubmitting, setEditPlSubmitting] = useState(false);
 
   const existingTypes = useMemo(() => {
     const types = [...new Set(products.map((p) => p.type).filter(Boolean))];
@@ -2694,19 +2714,71 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
             {priceLists.map((pl) => (
               <div
                 key={pl.id}
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: 20,
-                  border: "1px solid #1F2A4A",
-                  background: "#121A33",
-                  color: "#fff",
-                  fontSize: 13,
-                  fontWeight: 700,
-                }}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 6px 4px 14px", borderRadius: 20, border: "1px solid #1F2A4A", background: "#121A33" }}
               >
-                {pl.name}
+                <span style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>{pl.name}</span>
+                <button
+                  type="button"
+                  onClick={() => { setEditingPl(pl); setEditPlName(pl.name); setShowPlForm(false); }}
+                  style={{ height: 24, width: 24, borderRadius: 12, border: "none", background: "transparent", color: "#5C82FF", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                >✏</button>
               </div>
             ))}
+          </div>
+        )}
+
+        {editingPl && (
+          <div style={{ border: "1px solid #2B3960", background: "#121A33", borderRadius: 12, padding: 12, display: "grid", gap: 8 }}>
+            <div style={{ fontSize: 13, color: "#6E7A98", fontWeight: 700 }}>Editar lista "{editingPl.name}"</div>
+            <input
+              placeholder="Nombre de la lista"
+              style={{ height: 42, fontSize: 15, borderRadius: 10, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
+              value={editPlName}
+              onChange={(e) => setEditPlName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (async () => {
+                const name = editPlName.trim();
+                if (!name) { pushToast("Ingresá un nombre.", "error"); return; }
+                setEditPlSubmitting(true);
+                try {
+                  const res = await apiFetch(`${API}/price-lists/${editingPl.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, active: true }) });
+                  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || "Error"); }
+                  setEditingPl(null); pushToast("Lista actualizada ✅", "success"); onPriceListCreated?.();
+                } catch (e) { pushToast(e.message || "Error", "error"); } finally { setEditPlSubmitting(false); }
+              })(); } }}
+              autoFocus
+            />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                disabled={editPlSubmitting}
+                onClick={async () => {
+                  const name = editPlName.trim();
+                  if (!name) { pushToast("Ingresá un nombre.", "error"); return; }
+                  setEditPlSubmitting(true);
+                  try {
+                    const res = await apiFetch(`${API}/price-lists/${editingPl.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, active: true }) });
+                    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || "Error"); }
+                    setEditingPl(null); pushToast("Lista actualizada ✅", "success"); onPriceListCreated?.();
+                  } catch (e) { pushToast(e.message || "Error", "error"); } finally { setEditPlSubmitting(false); }
+                }}
+                style={{ flex: 2, height: 40, borderRadius: 10, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", fontWeight: 800, fontSize: 13, opacity: editPlSubmitting ? 0.6 : 1 }}
+              >{editPlSubmitting ? "Guardando..." : "Guardar nombre"}</button>
+              <button
+                type="button"
+                disabled={editPlSubmitting}
+                onClick={async () => {
+                  if (!window.confirm(`¿Eliminar la lista "${editingPl.name}"?`)) return;
+                  setEditPlSubmitting(true);
+                  try {
+                    const res = await apiFetch(`${API}/price-lists/${editingPl.id}`, { method: "DELETE" });
+                    if (!res.ok && res.status !== 204) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || "Error"); }
+                    setEditingPl(null); pushToast("Lista eliminada", "success"); onPriceListCreated?.();
+                  } catch (e) { pushToast(e.message || "Error", "error"); } finally { setEditPlSubmitting(false); }
+                }}
+                style={{ flex: 1, height: 40, borderRadius: 10, border: "1px solid #7F1D1D", background: "#0A1124", color: "#f87171", fontWeight: 800, fontSize: 13 }}
+              >Eliminar</button>
+              <button type="button" onClick={() => setEditingPl(null)} style={{ height: 40, padding: "0 14px", borderRadius: 10, border: "1px solid #1F2A4A", background: "#0A1124", color: "#6E7A98", fontWeight: 700, fontSize: 13 }}>✕</button>
+            </div>
           </div>
         )}
 
@@ -2856,6 +2928,23 @@ function StockScreen({ products, pushToast }) {
 
   const removeFormItem = (idx) => {
     setFormItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const deleteEntry = async (entryId) => {
+    if (!window.confirm("¿Eliminar este ingreso de stock?")) return;
+    try {
+      const res = await apiFetch(`${API}/stock/entries/${entryId}`, { method: "DELETE" });
+      if (!res.ok && res.status !== 204) {
+        const err = await res.json().catch(() => ({}));
+        pushToast(err.detail || "Error al eliminar", "error");
+        return;
+      }
+      pushToast("Ingreso eliminado", "success");
+      loadEntries();
+      loadCurrentStock();
+    } catch {
+      pushToast("Error al eliminar", "error");
+    }
   };
 
   const submitForm = async () => {
@@ -3146,6 +3235,16 @@ function StockScreen({ products, pushToast }) {
                   >
                     Editar
                   </button>
+                  <button
+                    type="button"
+                    onClick={(ev) => { ev.stopPropagation(); deleteEntry(e.id); }}
+                    style={{
+                      height: 32, padding: "0 10px", borderRadius: 8, border: "1px solid #7F1D1D",
+                      background: "#121A33", color: "#f87171", fontWeight: 800, fontSize: 12, cursor: "pointer",
+                    }}
+                  >
+                    Eliminar
+                  </button>
                   <span style={{ fontSize: 16 }}>{expandedEntry === e.id ? "▲" : "▼"}</span>
                 </div>
               </button>
@@ -3313,6 +3412,13 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
   const [editSPhone, setEditSPhone] = useState("");
   const [editSSubmitting, setEditSSubmitting] = useState(false);
   const [deactivateSSubmitting, setDeactivateSSubmitting] = useState(false);
+
+  // Edición inline de pagos a proveedor
+  const [editSpId, setEditSpId] = useState(null);
+  const [editSpAmount, setEditSpAmount] = useState("");
+  const [editSpNotes, setEditSpNotes] = useState("");
+  const [editSpDate, setEditSpDate] = useState("");
+  const [editSpSubmitting, setEditSpSubmitting] = useState(false);
 
   useEffect(() => {
     if (showNewSupplier) setTimeout(() => nsNameRef.current?.focus(), 0);
@@ -3747,14 +3853,101 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: "55vh", overflowY: "auto" }}>
                   {supplierPayments.map(p => (
                     <div key={p.id} style={{ border: "1px solid #1F2A4A", background: "#121A33", borderRadius: 14, padding: 12, display: "grid", gap: 6, boxShadow: "0 2px 12px rgba(0,0,0,0.25)" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div style={{ fontWeight: 900 }}>Pago #{p.id}</div>
-                        <div style={{ color: "#6E7A98", fontSize: 12 }}>{formatArDate(p.payment_date)}</div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ fontWeight: 900 }}>Pago #{p.id}</div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (editSpId === p.id) { setEditSpId(null); } else {
+                                setEditSpId(p.id);
+                                setEditSpAmount(String(Number(p.amount)));
+                                setEditSpNotes(p.notes || "");
+                                const d = new Date(p.payment_date);
+                                d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                                setEditSpDate(d.toISOString().slice(0, 10));
+                              }
+                            }}
+                            style={{ height: 26, padding: "0 10px", borderRadius: 8, border: "1px solid rgba(92,130,255,0.35)", background: editSpId === p.id ? "rgba(92,130,255,0.2)" : "rgba(92,130,255,0.1)", color: "#5C82FF", fontSize: 12, fontWeight: 800, cursor: "pointer" }}
+                          >{editSpId === p.id ? "Cancelar" : "Editar"}</button>
+                        </div>
+                        <div style={{ color: "#6E7A98", fontSize: 12, flexShrink: 0 }}>{formatArDate(p.payment_date)}</div>
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900 }}>
-                        <span>Monto</span><span>${Number(p.amount || 0).toFixed(2)}</span>
-                      </div>
-                      {p.notes && <div style={{ color: "#6E7A98", fontSize: 13, whiteSpace: "pre-line" }}>{p.notes}</div>}
+
+                      {editSpId === p.id ? (
+                        <div style={{ display: "grid", gap: 8 }}>
+                          <input
+                            inputMode="decimal"
+                            placeholder="Monto"
+                            value={editSpAmount}
+                            onChange={(e) => setEditSpAmount(e.target.value)}
+                            style={{ height: 42, fontSize: 15, borderRadius: 10, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
+                          />
+                          <input
+                            type="date"
+                            lang="en-GB"
+                            value={editSpDate}
+                            max={localToday()}
+                            onChange={(e) => setEditSpDate(e.target.value)}
+                            style={{ height: 42, fontSize: 15, borderRadius: 10, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box", cursor: "pointer", fontFamily: "inherit" }}
+                          />
+                          <input
+                            placeholder="Notas (opcional)"
+                            value={editSpNotes}
+                            onChange={(e) => setEditSpNotes(e.target.value)}
+                            style={{ height: 42, fontSize: 15, borderRadius: 10, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
+                          />
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button
+                              type="button"
+                              disabled={editSpSubmitting}
+                              onClick={async () => {
+                                const amount = Number(editSpAmount);
+                                if (!Number.isFinite(amount) || amount <= 0) { pushToast("Monto inválido.", "error"); return; }
+                                setEditSpSubmitting(true);
+                                try {
+                                  const res = await apiFetch(`${API}/clients/${selectedSupplier.id}/supplier-payments/${p.id}`, {
+                                    method: "PUT", headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ amount, notes: editSpNotes.trim() || null, payment_date: editSpDate ? new Date(editSpDate).toISOString() : undefined }),
+                                  });
+                                  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || "Error"); }
+                                  const sp = await apiFetch(`${API}/clients/${selectedSupplier.id}/supplier-payments`).then(r => r.json());
+                                  setSupplierPayments(Array.isArray(sp) ? sp : []);
+                                  setEditSpId(null);
+                                  pushToast("Pago actualizado ✅", "success");
+                                } catch (e) { pushToast(e.message || "Error", "error"); }
+                                finally { setEditSpSubmitting(false); }
+                              }}
+                              style={{ flex: 2, height: 42, borderRadius: 10, border: "none", background: editSpSubmitting ? "#3b3b8a" : "#5C82FF", color: "#fff", fontWeight: 900, cursor: "pointer", opacity: editSpSubmitting ? 0.7 : 1 }}
+                            >{editSpSubmitting ? "Guardando..." : "Guardar"}</button>
+                            <button
+                              type="button"
+                              disabled={editSpSubmitting}
+                              onClick={async () => {
+                                if (!window.confirm("¿Eliminar este pago?")) return;
+                                setEditSpSubmitting(true);
+                                try {
+                                  const res = await apiFetch(`${API}/clients/${selectedSupplier.id}/supplier-payments/${p.id}`, { method: "DELETE" });
+                                  if (!res.ok && res.status !== 204) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || "Error"); }
+                                  const sp = await apiFetch(`${API}/clients/${selectedSupplier.id}/supplier-payments`).then(r => r.json());
+                                  setSupplierPayments(Array.isArray(sp) ? sp : []);
+                                  setEditSpId(null);
+                                  pushToast("Pago eliminado", "success");
+                                } catch (e) { pushToast(e.message || "Error", "error"); }
+                                finally { setEditSpSubmitting(false); }
+                              }}
+                              style={{ flex: 1, height: 42, borderRadius: 10, border: "1px solid #7F1D1D", background: "#0A1124", color: "#f87171", fontWeight: 800, cursor: "pointer" }}
+                            >Eliminar</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900 }}>
+                            <span>Monto</span><span>${Number(p.amount || 0).toFixed(2)}</span>
+                          </div>
+                          {p.notes && <div style={{ color: "#6E7A98", fontSize: 13, whiteSpace: "pre-line" }}>{p.notes}</div>}
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
