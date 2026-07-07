@@ -1977,6 +1977,9 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
   // --- Categoría / Tipo ---
   const [showNewType, setShowNewType] = useState(false);
   const [showEditNewType, setShowEditNewType] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null); // string | null
+  const [editCategoryName, setEditCategoryName] = useState("");
+  const [editCategorySubmitting, setEditCategorySubmitting] = useState(false);
 
   // --- Buscador ---
   const [search, setSearch] = useState("");
@@ -2018,6 +2021,60 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
     boxSizing: "border-box",
   };
 
+  const openEditCategory = (catName) => {
+    setEditingCategory(catName);
+    setEditCategoryName(catName);
+  };
+
+  const closeEditCategory = () => {
+    setEditingCategory(null);
+    setEditCategoryName("");
+  };
+
+  const renameCategory = async () => {
+    const newName = editCategoryName.trim();
+    if (!newName) { pushToast("Ingresá un nombre.", "error"); return; }
+    if (newName === editingCategory) { closeEditCategory(); return; }
+    const affected = products.filter((p) => p.type === editingCategory);
+    if (affected.length === 0) { closeEditCategory(); return; }
+    setEditCategorySubmitting(true);
+    try {
+      await Promise.all(
+        affected.map((p) =>
+          apiFetch(`${API}/products/${p.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: p.name,
+              type: newName,
+              cost_price: p.cost_price != null ? Number(p.cost_price) : null,
+              active: p.active,
+              is_service: p.is_service,
+            }),
+          })
+        )
+      );
+      if (type === editingCategory) setType(newName);
+      if (editType === editingCategory) setEditType(newName);
+      closeEditCategory();
+      pushToast(`Categoría renombrada a "${newName}" ✅`, "success");
+      onProductCreated?.();
+    } catch {
+      pushToast("Error al renombrar categoría", "error");
+    } finally {
+      setEditCategorySubmitting(false);
+    }
+  };
+
+  const deleteCategory = () => {
+    const affected = products.filter((p) => p.type === editingCategory);
+    if (affected.length > 0) {
+      pushToast(`Hay ${affected.length} producto(s) con esta categoría. Renombrala primero.`, "error");
+      return;
+    }
+    closeEditCategory();
+  };
+
   const startEdit = (p) => {
     setEditingId(p.id);
     setEditName(p.name);
@@ -2031,7 +2088,7 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
     setShowEditNewType(!existingTypes.includes(p.type));
   };
 
-  const cancelEdit = () => { setEditingId(null); setShowEditNewType(false); };
+  const cancelEdit = () => { setEditingId(null); setShowEditNewType(false); closeEditCategory(); };
 
   const saveEdit = async (productId) => {
     const n = editName.trim();
@@ -2119,6 +2176,7 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
       setIsService(false);
       setPriceInputs({});
       setShowNewType(false);
+      closeEditCategory();
       setShowForm(false);
       pushToast("Producto creado ✅", "success");
       onProductCreated?.();
@@ -2253,6 +2311,46 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
               ))}
               <option value="__new__">+ Nueva categoría</option>
             </select>
+          )}
+          {!showNewType && type && (
+            editingCategory === type ? (
+              <div style={{ border: "1px solid #2B3960", background: "#121A33", borderRadius: 12, padding: 12, display: "grid", gap: 8 }}>
+                <div style={{ fontSize: 13, color: "#6E7A98", fontWeight: 700 }}>Editar categoría "{editingCategory}"</div>
+                <input
+                  placeholder="Nombre de la categoría"
+                  style={inputStyle}
+                  value={editCategoryName}
+                  onChange={(e) => setEditCategoryName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); renameCategory(); } }}
+                  autoFocus
+                />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    disabled={editCategorySubmitting}
+                    onClick={renameCategory}
+                    style={{ flex: 1, height: 40, borderRadius: 10, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", fontWeight: 800, fontSize: 13, opacity: editCategorySubmitting ? 0.6 : 1 }}
+                  >{editCategorySubmitting ? "Guardando..." : "Guardar nombre"}</button>
+                  <button
+                    type="button"
+                    disabled={editCategorySubmitting}
+                    onClick={deleteCategory}
+                    style={{ flex: 1, height: 40, borderRadius: 10, border: "1px solid #7F1D1D", background: "#0A1124", color: "#f87171", fontWeight: 800, fontSize: 13 }}
+                  >Eliminar</button>
+                  <button
+                    type="button"
+                    onClick={closeEditCategory}
+                    style={{ height: 40, padding: "0 14px", borderRadius: 10, border: "1px solid #1F2A4A", background: "#0A1124", color: "#6E7A98", fontWeight: 700, fontSize: 13 }}
+                  >✕</button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => openEditCategory(type)}
+                style={{ alignSelf: "flex-start", height: 34, padding: "0 14px", borderRadius: 10, border: "1px solid #2B3960", background: "#0A1124", color: "#A5B0CC", fontWeight: 700, fontSize: 13 }}
+              >Editar categoría</button>
+            )
           )}
           <input
             inputMode="decimal"
@@ -2402,6 +2500,46 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
                       ))}
                       <option value="__new__">+ Nueva categoría</option>
                     </select>
+                  )}
+                  {!showEditNewType && editType && (
+                    editingCategory === editType ? (
+                      <div style={{ border: "1px solid #2B3960", background: "#121A33", borderRadius: 12, padding: 12, display: "grid", gap: 8 }}>
+                        <div style={{ fontSize: 13, color: "#6E7A98", fontWeight: 700 }}>Editar categoría "{editingCategory}"</div>
+                        <input
+                          placeholder="Nombre de la categoría"
+                          style={inputStyle}
+                          value={editCategoryName}
+                          onChange={(e) => setEditCategoryName(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); renameCategory(); } }}
+                          autoFocus
+                        />
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button
+                            type="button"
+                            disabled={editCategorySubmitting}
+                            onClick={renameCategory}
+                            style={{ flex: 1, height: 40, borderRadius: 10, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", fontWeight: 800, fontSize: 13, opacity: editCategorySubmitting ? 0.6 : 1 }}
+                          >{editCategorySubmitting ? "Guardando..." : "Guardar nombre"}</button>
+                          <button
+                            type="button"
+                            disabled={editCategorySubmitting}
+                            onClick={deleteCategory}
+                            style={{ flex: 1, height: 40, borderRadius: 10, border: "1px solid #7F1D1D", background: "#0A1124", color: "#f87171", fontWeight: 800, fontSize: 13 }}
+                          >Eliminar</button>
+                          <button
+                            type="button"
+                            onClick={closeEditCategory}
+                            style={{ height: 40, padding: "0 14px", borderRadius: 10, border: "1px solid #1F2A4A", background: "#0A1124", color: "#6E7A98", fontWeight: 700, fontSize: 13 }}
+                          >✕</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => openEditCategory(editType)}
+                        style={{ alignSelf: "flex-start", height: 34, padding: "0 14px", borderRadius: 10, border: "1px solid #2B3960", background: "#0A1124", color: "#A5B0CC", fontWeight: 700, fontSize: 13 }}
+                      >Editar categoría</button>
+                    )
                   )}
                   <input
                     inputMode="decimal"
