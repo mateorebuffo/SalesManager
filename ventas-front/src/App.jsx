@@ -1974,6 +1974,10 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
   const [editPriceInputs, setEditPriceInputs] = useState({});
   const [editSubmitting, setEditSubmitting] = useState(false);
 
+  // --- Categoría / Tipo ---
+  const [showNewType, setShowNewType] = useState(false);
+  const [showEditNewType, setShowEditNewType] = useState(false);
+
   // --- Buscador ---
   const [search, setSearch] = useState("");
 
@@ -1981,6 +1985,11 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
   const [newPlName, setNewPlName] = useState("");
   const [plSubmitting, setPlSubmitting] = useState(false);
   const [showPlForm, setShowPlForm] = useState(false);
+
+  const existingTypes = useMemo(() => {
+    const types = [...new Set(products.map((p) => p.type).filter(Boolean))];
+    return types.sort((a, b) => a.localeCompare(b));
+  }, [products]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -2019,9 +2028,10 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
     const inputs = {};
     (p.prices || []).forEach((pr) => { inputs[pr.price_list_id] = String(pr.price); });
     setEditPriceInputs(inputs);
+    setShowEditNewType(!existingTypes.includes(p.type));
   };
 
-  const cancelEdit = () => setEditingId(null);
+  const cancelEdit = () => { setEditingId(null); setShowEditNewType(false); };
 
   const saveEdit = async (productId) => {
     const n = editName.trim();
@@ -2108,6 +2118,7 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
       setCostPrice("");
       setIsService(false);
       setPriceInputs({});
+      setShowNewType(false);
       setShowForm(false);
       pushToast("Producto creado ✅", "success");
       onProductCreated?.();
@@ -2204,12 +2215,45 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submit(); } }}
           />
-          <input
-            placeholder="Tipo (ej: Aceite, Gas, Bebida)"
-            style={inputStyle}
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-          />
+          {showNewType ? (
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                placeholder="Nueva categoría"
+                style={{ ...inputStyle, flex: 1 }}
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => { setShowNewType(false); setType(""); }}
+                style={{
+                  height: 48, padding: "0 14px", borderRadius: 12,
+                  border: "1px solid #1F2A4A", background: "#0A1124",
+                  color: "#6E7A98", fontWeight: 700, fontSize: 13, flexShrink: 0,
+                }}
+              >✕</button>
+            </div>
+          ) : (
+            <select
+              style={{ ...inputStyle, cursor: "pointer" }}
+              value={type}
+              onChange={(e) => {
+                if (e.target.value === "__new__") {
+                  setShowNewType(true);
+                  setType("");
+                } else {
+                  setType(e.target.value);
+                }
+              }}
+            >
+              <option value="">Seleccioná una categoría...</option>
+              {existingTypes.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+              <option value="__new__">+ Nueva categoría</option>
+            </select>
+          )}
           <input
             inputMode="decimal"
             placeholder="Precio costo (opcional)"
@@ -2320,12 +2364,45 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                   />
-                  <input
-                    placeholder="Tipo"
-                    style={inputStyle}
-                    value={editType}
-                    onChange={(e) => setEditType(e.target.value)}
-                  />
+                  {showEditNewType ? (
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        placeholder="Nueva categoría"
+                        style={{ ...inputStyle, flex: 1 }}
+                        value={editType}
+                        onChange={(e) => setEditType(e.target.value)}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { setShowEditNewType(false); setEditType(existingTypes[0] || ""); }}
+                        style={{
+                          height: 48, padding: "0 14px", borderRadius: 12,
+                          border: "1px solid #1F2A4A", background: "#0A1124",
+                          color: "#6E7A98", fontWeight: 700, fontSize: 13, flexShrink: 0,
+                        }}
+                      >✕</button>
+                    </div>
+                  ) : (
+                    <select
+                      style={{ ...inputStyle, cursor: "pointer" }}
+                      value={editType}
+                      onChange={(e) => {
+                        if (e.target.value === "__new__") {
+                          setShowEditNewType(true);
+                          setEditType("");
+                        } else {
+                          setEditType(e.target.value);
+                        }
+                      }}
+                    >
+                      <option value="">Seleccioná una categoría...</option>
+                      {existingTypes.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                      <option value="__new__">+ Nueva categoría</option>
+                    </select>
+                  )}
                   <input
                     inputMode="decimal"
                     placeholder="Precio costo (opcional)"
