@@ -4,6 +4,16 @@ Sistema de gestión de ventas, clientes, stock y proveedores diseñado para uso 
 
 ---
 
+## Screenshots
+
+| | |
+|---|---|
+| ![Nueva venta](screenshots/nueva-venta.png) | ![Registrar pago](screenshots/registrar-pago.png) |
+| ![Crear cliente / proveedor](screenshots/crear-cliente-proveedor.png) | ![Nuevo producto y precios](screenshots/nuevo-producto-precios.png) |
+| ![Roles y permisos](screenshots/roles.png) | |
+
+---
+
 ## Stack
 
 | Capa | Tecnología |
