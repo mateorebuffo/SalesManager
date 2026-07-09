@@ -1,187 +1,207 @@
-# Sistema de Ventas
+# Sales Manager
 
-Sistema de gestión de ventas, clientes, stock y proveedores diseñado para uso en mostrador (POS). Incluye control de inventario, cuentas corrientes, listas de precios y un panel de administración con roles y permisos.
+![Python](https://img.shields.io/badge/python-3.11+-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.129-005571)
+![React](https://img.shields.io/badge/React-19-61DAFB)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-SQLAlchemy_2.0-336791)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
----
+A sales, client, stock, and supplier management system designed for point-of-sale (POS) counter use. Includes inventory control, running accounts (accounts receivable/payable), price lists, and an admin panel with roles and permissions.
+
+## Why this exists
+
+This system was built to replace manual sales, running-account, and stock management at a store counter, migrating a real business workflow with multiple employees, client-specific price lists, and suppliers who need to be paid using the same running-account logic as clients who owe money. It's designed for daily counter use, with access from both desktop and mobile.
 
 ## Screenshots
 
-| | |
-|---|---|
-| ![Nueva venta](screenshots/nueva-venta.png) | ![Registrar pago](screenshots/registrar-pago.png) |
-| ![Crear cliente / proveedor](screenshots/crear-cliente-proveedor.png) | ![Nuevo producto y precios](screenshots/nuevo-producto-precios.png) |
-| ![Roles y permisos](screenshots/roles.png) | |
+**New sale with running-account payment method** — the sale flow supports running account, cash, transfer, or crypto, with an optional partial-payment toggle.
 
----
+![New sale](screenshots/nueva-venta.png)
+
+**Recording a payment against a client's account** — payments are recorded independently of any sale, updating the total balance in real time.
+
+![Register payment](screenshots/registrar-pago.png)
+
+**Creating a client with the supplier flag** — the "Is supplier" checkbox is the visual interface for the design decision to model suppliers as clients, reusing the same form and logic.
+
+![Create client / supplier](screenshots/crear-cliente-proveedor.png)
+
+**Product with per-list pricing** — each product can have a different price depending on the price list assigned to the client (General, General with discount, Wholesale).
+
+![New product with price lists](screenshots/nuevo-producto-precios.png)
+
+**Roles configurable per screen** — the Admin role has full access; roles like Operator are configured with granular permissions per section.
+
+![Roles](screenshots/roles.png)
+
+## Technical highlights
+
+- **Payment model decoupled from sales**: a payment can be tied to a specific sale (`sale_id`) or be a general credit to the client's account (`sale_id = null`), and the client's balance aggregates both types without duplicating logic.
+- **Suppliers modeled as clients** (`is_supplier = true`) in the same table, reusing all the CRUD, payment system, and account statement logic instead of duplicating code for a distinct business concept.
+- **Permissions embedded in the JWT**: the token includes `role` and `permissions[]`, letting the frontend adapt the UI without an extra server request on every load.
+- **Hot migrations**: new columns are added via `ALTER TABLE IF NOT EXISTS` on app startup — a pragmatic decision for a project of this size, avoiding the overhead of an external migration tool.
+- **Derived, not modeled, product categories**: there's no categories table; each product's `type` field acts as one, with UI for grouping, batch renaming, and management built directly on top of existing values.
+- **Audit notifications**: every action by an operator (sale, product, or stock entry) generates a notification for the admin, giving visibility without manually reviewing logs.
+
+## Features
+
+### Sales & Payments
+- Create sales with multiple items, quantities, and per-unit prices
+- Optional initial payment when creating a sale
+- Additional payments: tied to a specific sale or as a general credit to the client
+- Edit sales (date, notes, items)
+- Per-client account statement: total delivered, total paid, pending balance
+
+### Clients
+- Full CRUD with name, phone, notes, and assigned price list
+- Soft delete via `active` field
+- Deliveries view: history of products sold to the client
+- Payments view: all client payments with inline edit and delete
+- Debtors screen: clients with a pending balance, sorted by amount
+
+### Products & Pricing
+- Product CRUD with cost price, type/category, and a service flag
+- Categories as a free-text field on products, with UI for batch renaming and deleting
+- Multiple price lists: each product can have a different price per list
+- Products marked as a service don't consume stock
+- Soft delete for products
+
+### Stock
+- Stock entries with date, notes, and items (product + quantity)
+- Current stock calculated as `stock_in − stock_out` per product
+- Sales automatically deduct stock; only admin can force a sale without stock
+- Edit and delete entries
+
+### Suppliers
+- Suppliers are clients with `is_supplier = true` — same table, same CRUD
+- Records purchases from the supplier (sales of type `purchase`)
+- Supplier payments with inline edit and delete
+- Pending balance per supplier
+
+### Users & Roles
+- Users with password, role, and active/inactive status
+- Configurable roles with per-screen permissions (`sale`, `client`, `products`, `stock`, `suppliers`, `debtors`)
+- Two system roles: `admin` (full access) and `operator` (configurable)
+- Admin can create custom roles, change passwords, and deactivate accounts
+
+### Admin Notifications
+- When an operator creates or edits a sale, product, or stock entry, a notification is generated for the admin
+- Notifications panel with unread count and per-action detail
 
 ## Stack
 
-| Capa | Tecnología |
-|------|-----------|
+| Layer | Technology |
+|---|---|
 | Backend | FastAPI 0.129 + Python 3.11 |
-| Base de datos | PostgreSQL (psycopg 3) |
+| Database | PostgreSQL (psycopg 3) |
 | ORM | SQLAlchemy 2.0 |
 | Auth | JWT (PyJWT) + bcrypt |
 | Frontend | React 19 + Vite 8 |
-| Deploy backend | Heroku / Railway (Procfile) |
-| Deploy frontend | Netlify |
+| Backend deploy | Heroku / Railway (Procfile) |
+| Frontend deploy | Netlify |
 
----
-
-## Funcionalidades
-
-### Ventas y pagos
-- Creación de ventas con múltiples ítems, cantidades y precios por unidad
-- Pago inicial al crear la venta (opcional)
-- Pagos adicionales: asociados a una venta específica o como abono general al cliente
-- Edición de ventas (fecha, notas, ítems)
-- Estado de cuenta por cliente: total entregado, total pagado, saldo pendiente
-
-### Clientes
-- CRUD completo con nombre, teléfono, notas y lista de precios asignada
-- Baja lógica (soft delete vía campo `active`)
-- Vista de entregas: historial de productos vendidos al cliente
-- Vista de pagos: todos los pagos del cliente con edición y eliminación inline
-- Pantalla de deudores: clientes con saldo pendiente ordenados por monto
-
-### Productos y precios
-- CRUD de productos con precio de costo, tipo/categoría e indicador de servicio
-- Categorías como campo libre en productos, con UI para renombrar en batch y eliminar
-- Múltiples listas de precios: cada producto puede tener un precio diferente por lista
-- Los productos marcados como servicio no consumen stock
-- Baja lógica de productos
-
-### Stock
-- Ingresos de stock con fecha, notas e ítems (producto + cantidad)
-- Stock actual calculado como `stock_in − stock_out` por producto
-- Las ventas descontarán stock automáticamente; solo admin puede forzar venta sin stock
-- Edición y eliminación de ingresos
-
-### Proveedores
-- Los proveedores son clientes con `is_supplier = true` — misma tabla, mismo CRUD
-- Registro de compras al proveedor (ventas de tipo `purchase`)
-- Pagos a proveedores con edición y eliminación inline
-- Balance pendiente por proveedor
-
-### Usuarios y roles
-- Usuarios con contraseña, rol y estado activo/inactivo
-- Roles configurables con permisos por pantalla (`sale`, `client`, `products`, `stock`, `suppliers`, `debtors`)
-- Dos roles de sistema: `admin` (acceso total) y `operator` (configurable)
-- Admin puede crear roles personalizados, cambiar contraseñas y desactivar cuentas
-
-### Notificaciones para admin
-- Cuando un operario crea o edita una venta, producto o ingreso de stock, se genera una notificación al admin
-- Panel de notificaciones con conteo de no leídas y detalle de cada acción
-
----
-
-## Arquitectura
+## Architecture
 
 ```
 sistema_ventas/
 ├── app/
-│   ├── main.py              # Entrypoint: CORS, rate limiter, seed inicial, migraciones hot
-│   ├── models.py            # Modelos SQLAlchemy
-│   ├── schemas.py           # Schemas Pydantic (validación de entrada y salida)
-│   ├── auth.py              # JWT, hash de contraseña, CurrentUser, require_admin
+│   ├── main.py              # Entry point: CORS, rate limiter, initial seed, hot migrations
+│   ├── models.py            # SQLAlchemy models
+│   ├── schemas.py           # Pydantic schemas (input/output validation)
+│   ├── auth.py              # JWT, password hashing, CurrentUser, require_admin
 │   ├── database.py          # Engine, SessionLocal, Base, get_db()
 │   └── routers/
 │       ├── auth.py          # POST /auth/token
-│       ├── clients.py       # /clients — CRUD, pagos, estado de cuenta, deudores
-│       ├── sales.py         # /sales — CRUD, pagos por venta
-│       ├── products.py      # /products — CRUD, precios por lista
+│       ├── clients.py       # /clients — CRUD, payments, account statement, debtors
+│       ├── sales.py         # /sales — CRUD, per-sale payments
+│       ├── products.py      # /products — CRUD, per-list pricing
 │       ├── price_lists.py   # /price-lists — CRUD
-│       ├── stock.py         # /stock — stock actual, ingresos
-│       ├── suppliers.py     # Lógica de proveedores (en clients.py)
-│       ├── users.py         # /users — solo admin
-│       ├── roles.py         # /roles — solo admin
-│       └── notifications.py # /notifications — solo admin
+│       ├── stock.py         # /stock — current stock, entries
+│       ├── suppliers.py     # Supplier logic (lives in clients.py)
+│       ├── users.py         # /users — admin only
+│       ├── roles.py         # /roles — admin only
+│       └── notifications.py # /notifications — admin only
 │
 └── ventas-front/
     └── src/
-        ├── App.jsx          # SPA completa: todas las pantallas y lógica de UI
+        ├── App.jsx          # Full SPA: all screens and UI logic
         └── design/
-            └── AppShell.jsx # Layout, navegación, barra superior, campana de notificaciones
+            └── AppShell.jsx # Layout, navigation, top bar, notifications bell
 ```
 
-### Decisiones de diseño destacadas
+## Key design decisions
 
-- **Pagos desacoplados de ventas**: un pago puede estar atado a una venta concreta (`sale_id`) o ser un abono general al cliente (`sale_id = null`). El balance del cliente agrega ambos tipos.
-- **Proveedores como clientes**: en lugar de una tabla separada, los proveedores son clientes con `is_supplier = true`. Simplifica el modelo y reutiliza toda la lógica de pagos y estado de cuenta.
-- **Migraciones en caliente**: columnas nuevas se agregan vía `ALTER TABLE IF NOT EXISTS` al iniciar la app, sin herramienta de migraciones externa.
-- **Categorías de producto derivadas**: no existe una tabla de categorías; el campo `type` de cada producto actúa como categoría. La UI agrupa, renombra (batch update) y gestiona a partir de los valores existentes.
-- **Timezone fijo**: todo se procesa en `America/Argentina/Cordoba`. Las fechas futuras están bloqueadas con margen de 5 minutos.
-- **Rol en token JWT**: el token incluye `role` y `permissions[]`, lo que permite que el frontend adapte la UI sin request adicional al servidor.
+- **Payments decoupled from sales**: a payment can be tied to a specific sale (`sale_id`) or be a general credit to the client (`sale_id = null`). The client's balance aggregates both types.
+- **Suppliers as clients**: instead of a separate table, suppliers are clients with `is_supplier = true`. This simplifies the model and reuses all payment and account-statement logic.
+- **Hot migrations**: new columns are added via `ALTER TABLE IF NOT EXISTS` on app startup, with no external migration tool.
+- **Derived product categories**: there's no categories table; each product's `type` field acts as its category. The UI groups, renames (batch update), and manages categories based on existing values.
+- **Fixed timezone**: everything is processed in `America/Argentina/Cordoba`. Future dates are blocked with a 5-minute margin.
+- **Role in the JWT**: the token includes `role` and `permissions[]`, letting the frontend adapt the UI without an extra request to the server.
 
----
-
-## Endpoints principales
+## Main Endpoints
 
 ```
 POST   /auth/token                                  Login → JWT
 
-GET    /clients                                     Lista clientes (filtros: is_supplier, active)
-POST   /clients                                     Crear cliente
-PUT    /clients/{id}                                Actualizar cliente
-GET    /clients/debtors                             Clientes con saldo > 0
-GET    /clients/{id}/statement                      Estado de cuenta
-GET    /clients/{id}/deliveries                     Ítems entregados
-POST   /clients/{id}/payments                       Pago general
-PUT    /clients/{id}/payments/{payment_id}          Editar pago
-DELETE /clients/{id}/payments/{payment_id}          Eliminar pago
-POST   /clients/{id}/supplier-payments              Pago a proveedor
-PUT    /clients/{id}/supplier-payments/{payment_id} Editar pago a proveedor
-DELETE /clients/{id}/supplier-payments/{payment_id} Eliminar pago a proveedor
+GET    /clients                                     List clients (filters: is_supplier, active)
+POST   /clients                                     Create client
+PUT    /clients/{id}                                Update client
+GET    /clients/debtors                             Clients with balance > 0
+GET    /clients/{id}/statement                      Account statement
+GET    /clients/{id}/deliveries                     Delivered items
+POST   /clients/{id}/payments                       General payment
+PUT    /clients/{id}/payments/{payment_id}          Edit payment
+DELETE /clients/{id}/payments/{payment_id}          Delete payment
+POST   /clients/{id}/supplier-payments              Payment to supplier
+PUT    /clients/{id}/supplier-payments/{payment_id} Edit supplier payment
+DELETE /clients/{id}/supplier-payments/{payment_id} Delete supplier payment
 
-POST   /sales                                       Crear venta (con pago inicial opcional)
-GET    /sales/{id}                                  Detalle de venta
-PUT    /sales/{id}                                  Editar venta
-POST   /sales/{id}/payments                         Pago asociado a venta
+POST   /sales                                       Create sale (optional initial payment)
+GET    /sales/{id}                                  Sale detail
+PUT    /sales/{id}                                  Edit sale
+POST   /sales/{id}/payments                         Payment tied to a sale
 
-GET    /products                                    Lista productos
-POST   /products                                    Crear producto
-PUT    /products/{id}                               Editar producto
-POST   /products/{id}/prices                        Upsert precio por lista
+GET    /products                                    List products
+POST   /products                                    Create product
+PUT    /products/{id}                               Edit product
+POST   /products/{id}/prices                        Upsert price per list
 
-GET    /price-lists                                 Lista listas de precios
-POST   /price-lists                                 Crear lista
-PUT    /price-lists/{id}                            Renombrar lista
-DELETE /price-lists/{id}                            Eliminar lista (bloqueado si tiene clientes)
+GET    /price-lists                                 List price lists
+POST   /price-lists                                 Create list
+PUT    /price-lists/{id}                            Rename list
+DELETE /price-lists/{id}                             Delete list (blocked if it has clients)
 
-GET    /stock/current                               Stock actual por producto
-GET    /stock/entries                               Historial de ingresos
-POST   /stock/entries                               Crear ingreso
-PUT    /stock/entries/{id}                          Editar ingreso
-DELETE /stock/entries/{id}                          Eliminar ingreso
+GET    /stock/current                               Current stock per product
+GET    /stock/entries                               Entry history
+POST   /stock/entries                               Create entry
+PUT    /stock/entries/{id}                          Edit entry
+DELETE /stock/entries/{id}                          Delete entry
 
-GET    /users                                       Lista usuarios (admin)
-POST   /users                                       Crear usuario (admin)
-PUT    /users/{id}                                  Actualizar rol/estado (admin)
-PUT    /users/{id}/password                         Cambiar contraseña (admin)
+GET    /users                                       List users (admin)
+POST   /users                                       Create user (admin)
+PUT    /users/{id}                                  Update role/status (admin)
+PUT    /users/{id}/password                         Change password (admin)
 
-GET    /roles                                       Lista roles
-POST   /roles                                       Crear rol (admin)
-PUT    /roles/{id}                                  Editar rol (admin)
-DELETE /roles/{id}                                  Eliminar rol (admin, no sistema)
+GET    /roles                                       List roles
+POST   /roles                                       Create role (admin)
+PUT    /roles/{id}                                  Edit role (admin)
+DELETE /roles/{id}                                  Delete role (admin, non-system only)
 
-GET    /notifications/count                         Cantidad de no leídas (admin)
-GET    /notifications                               Últimas 100 notificaciones (admin)
-POST   /notifications/read-all                      Marcar todas como leídas (admin)
+GET    /notifications/count                         Unread count (admin)
+GET    /notifications                               Last 100 notifications (admin)
+POST   /notifications/read-all                      Mark all as read (admin)
 
 GET    /health                                      Health check
 ```
 
----
+## Running locally
 
-## Correr localmente
-
-### Requisitos
+### Requirements
 - Python 3.11+
 - Node.js 18+
 - PostgreSQL
 
 ### Backend
-
 ```bash
 python -m venv venv
 source venv/bin/activate       # macOS/Linux
@@ -190,52 +210,55 @@ source venv/bin/activate       # macOS/Linux
 pip install -r requirements.txt
 ```
 
-Crear `.env` en la raíz:
-
-```env
-DATABASE_URL=postgresql+psycopg://usuario:contraseña@localhost/sistema_ventas
-SECRET_KEY=cambia_esto_por_una_clave_de_al_menos_32_caracteres
+Create `.env` in the root:
+```
+DATABASE_URL=postgresql+psycopg://user:password@localhost/sistema_ventas
+SECRET_KEY=change_this_to_a_key_of_at_least_32_characters
 ADMIN_USERNAME=admin
-ADMIN_PASSWORD=contraseña_segura
+ADMIN_PASSWORD=a_secure_password
 ENVIRONMENT=development
 ALLOWED_ORIGIN=http://localhost:5173
 ```
 
 ```bash
 uvicorn app.main:app --reload
-# Docs disponibles en http://localhost:8000/docs
+# Docs available at http://localhost:8000/docs
 ```
 
 ### Frontend
-
 ```bash
 cd ventas-front
 npm install
 npm run dev
-# Disponible en http://localhost:5173
+# Available at http://localhost:5173
 ```
 
----
+## Environment Variables
 
-## Variables de entorno
-
-| Variable | Requerida | Descripción |
-|----------|-----------|-------------|
-| `DATABASE_URL` | Sí | URL de PostgreSQL con driver psycopg |
-| `SECRET_KEY` | Sí | Clave para firmar JWT (mínimo 32 caracteres) |
-| `ADMIN_USERNAME` | Sí (primer arranque) | Usuario admin inicial |
-| `ADMIN_PASSWORD` | Sí (primer arranque) | Contraseña admin inicial (mín. 8 caracteres) |
-| `ENVIRONMENT` | No | `production` deshabilita Swagger y relaja CORS |
-| `ALLOWED_ORIGIN` | Sí en prod | URL del frontend para CORS |
-
----
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | Yes | PostgreSQL URL with the psycopg driver |
+| `SECRET_KEY` | Yes | Key for signing JWTs (minimum 32 characters) |
+| `ADMIN_USERNAME` | Yes (first run) | Initial admin username |
+| `ADMIN_PASSWORD` | Yes (first run) | Initial admin password (min. 8 characters) |
+| `ENVIRONMENT` | No | `production` disables Swagger and relaxes CORS |
+| `ALLOWED_ORIGIN` | Yes in prod | Frontend URL for CORS |
 
 ## Deploy
 
-El backend está configurado para deployar en **Railway** o **Heroku** vía `Procfile`:
-
+The backend is configured to deploy on Railway or Heroku via `Procfile`:
 ```
 web: uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
-El frontend está configurado para deployar en **Netlify** con redirects SPA (`netlify.toml` incluido).
+The frontend is configured to deploy on Netlify with SPA redirects (`netlify.toml` included).
+
+## Roadmap / Ideas
+
+- [ ] Natural-language interface over account statements and stock (e.g. "who owes me more than $50,000?", "which products are below minimum stock?")
+- [ ] Automatic low-stock alerts
+- [ ] Export account statements to PDF
+
+## License
+
+MIT
