@@ -97,8 +97,8 @@ This system was built to replace manual sales, running-account, and stock manage
 | ORM | SQLAlchemy 2.0 |
 | Auth | JWT (PyJWT) + bcrypt |
 | Frontend | React 19 + Vite 8 |
-| Backend deploy | Heroku / Railway (Procfile) |
-| Frontend deploy | Netlify |
+| Backend deploy | Railway (Procfile) |
+| Frontend deploy | Railway |
 
 ## Architecture
 
@@ -246,12 +246,12 @@ npm run dev
 
 ## Deploy
 
-The backend is configured to deploy on Railway or Heroku via `Procfile`:
+Both the backend and frontend are deployed on Railway.
+
+The backend runs via `Procfile`:
 ```
 web: uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
-
-The frontend is configured to deploy on Netlify with SPA redirects (`netlify.toml` included).
 
 ## Roadmap / Ideas
 
