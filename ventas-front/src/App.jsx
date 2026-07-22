@@ -3374,7 +3374,7 @@ function DebtorsScreen({ pushToast }) {
 }
 
 /** Pantalla: Proveedores */
-function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCreated }) {
+function SuppliersScreen({ suppliers, allClients = [], products = [], pushToast, onSupplierCreated }) {
   const supplierRef = useRef(null);
   const [supplierQuery, setSupplierQuery] = useState("");
   const [selectedSupplier, setSelectedSupplier] = useState(null);
@@ -3412,6 +3412,9 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
   const [editSPhone, setEditSPhone] = useState("");
   const [editSSubmitting, setEditSSubmitting] = useState(false);
   const [deactivateSSubmitting, setDeactivateSSubmitting] = useState(false);
+
+  // Editar compra
+  const [editPurchaseId, setEditPurchaseId] = useState(null);
 
   // Edición inline de pagos a proveedor
   const [editSpId, setEditSpId] = useState(null);
@@ -3623,14 +3626,22 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
   const exportBtnStyle = { width: "100%", height: 44, borderRadius: 10, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", fontWeight: 900, fontSize: 14, cursor: "pointer" };
   const showMoreBtnStyle = { width: "100%", height: 48, borderRadius: 12, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", fontWeight: 900, marginTop: 10, cursor: "pointer" };
 
-  const DeliveryCard = ({ sale, labelPrefix, paidInfo }) => {
+  const DeliveryCard = ({ sale, labelPrefix, paidInfo, onEdit }) => {
     const paid = Number(paidInfo?.paid ?? 0);
     const total = Number(paidInfo?.total ?? sale.total);
     return (
       <div style={{ border: "1px solid #1F2A4A", borderRadius: 14, background: "#121A33", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.25)" }}>
         <div style={{ padding: 12, borderBottom: "1px solid #2a2a2a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ fontWeight: 900 }}>{labelPrefix} #{sale.sale_id}</div>
-          <div style={{ color: "#6E7A98", fontSize: 12 }}>{formatArDate(sale.sale_date)}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {onEdit && (
+              <button type="button" onClick={onEdit}
+                style={{ height: 28, padding: "0 12px", borderRadius: 8, border: "1px solid #2B3960", background: "#0A1124", color: "#fff", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
+                Editar
+              </button>
+            )}
+            <div style={{ color: "#6E7A98", fontSize: 12 }}>{formatArDate(sale.sale_date)}</div>
+          </div>
         </div>
         <div style={{ padding: 12, display: "grid", gap: 10 }}>
           {sale.rows.map((r, i) => (
@@ -3670,6 +3681,7 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
   const totalOwed = Math.max(0, totalPurchaseAmount - totalPaid);
 
   return (
+    <>
     <div style={{ display: "grid", gap: 12, padding: "16px 16px 0" }}>
       <SearchDropdown
         inputRef={supplierRef}
@@ -3805,7 +3817,8 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
                 <div style={{ display: "grid", gap: 12 }}>
                   {(showAllPurchases ? purchasesBySale : purchasesBySale.slice(0, 5)).map(sale => (
                     <DeliveryCard key={sale.sale_id} sale={sale} labelPrefix="COMPRA"
-                      paidInfo={purchases.find(p => p.sale_id === sale.sale_id)} />
+                      paidInfo={purchases.find(p => p.sale_id === sale.sale_id)}
+                      onEdit={() => setEditPurchaseId(sale.sale_id)} />
                   ))}
                 </div>
               )}
@@ -3986,6 +3999,27 @@ function SuppliersScreen({ suppliers, allClients = [], pushToast, onSupplierCrea
         </>
       )}
     </div>
+
+    {editPurchaseId && (
+      <EditSaleModal
+        saleId={editPurchaseId}
+        products={products}
+        pushToast={pushToast}
+        onSaved={async () => {
+          if (!selectedSupplier) return;
+          const [p, sp, pd] = await Promise.all([
+            apiFetch(`${API}/clients/${selectedSupplier.id}/purchases`).then(r => r.json()),
+            apiFetch(`${API}/clients/${selectedSupplier.id}/supplier-payments`).then(r => r.json()),
+            apiFetch(`${API}/clients/${selectedSupplier.id}/deliveries?sale_type=purchase`).then(r => r.json()),
+          ]);
+          setPurchases(Array.isArray(p) ? p : []);
+          setSupplierPayments(Array.isArray(sp) ? sp : []);
+          setPurchaseDeliveriesData(pd?.deliveries ? pd : null);
+        }}
+        onClose={() => setEditPurchaseId(null)}
+      />
+    )}
+    </>
   );
 }
 
@@ -4643,6 +4677,7 @@ function AppShell({ onLogout, currentUser }) {
           <SuppliersScreen
             suppliers={clients.filter(c => c.is_supplier)}
             allClients={clients}
+            products={products}
             pushToast={pushToast} onSupplierCreated={refreshClients}
           />
         ) : screen === "users" ? (
