@@ -1,6 +1,9 @@
 # app/main.py
 import logging
 import os
+import re
+import time
+from urllib.request import Request as UrlRequest, urlopen
 
 from fastapi import Depends, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -118,6 +121,42 @@ app.include_router(roles_router,         dependencies=_auth)
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# ── Dólar Blue ────────────────────────────────────────────────────────────────
+_dolar_cache: dict = {"data": None, "ts": 0.0}
+_DOLAR_TTL = 600  # seconds
+
+
+def _fetch_dolar_blue() -> dict | None:
+    now = time.time()
+    if _dolar_cache["data"] and now - _dolar_cache["ts"] < _DOLAR_TTL:
+        return _dolar_cache["data"]
+    try:
+        req = UrlRequest(
+            "https://www.infodolar.com/cotizacion-dolar-provincia-cordoba.aspx",
+            headers={"User-Agent": "Mozilla/5.0"},
+        )
+        with urlopen(req, timeout=8) as r:
+            html = r.read().decode("utf-8", errors="replace")
+        idx = html.lower().find("blue")
+        if idx != -1:
+            segment = html[idx: idx + 1000]
+            amounts = re.findall(r"\$\s*([\d.,]+)", segment)
+            if len(amounts) >= 2:
+                result = {"compra": amounts[0], "venta": amounts[1]}
+                _dolar_cache["data"] = result
+                _dolar_cache["ts"] = now
+                return result
+    except Exception:
+        pass
+    return _dolar_cache["data"]
+
+
+@app.get("/dolar-blue")
+def get_dolar_blue():
+    data = _fetch_dolar_blue()
+    return data if data else {"compra": None, "venta": None}
 
 
 # ── CORS ──────────────────────────────────────────────────────────────────────

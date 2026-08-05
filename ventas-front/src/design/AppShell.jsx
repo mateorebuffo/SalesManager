@@ -3,11 +3,14 @@
 // `screen` state. Wrap your screens with it and provide currentUser + onLogout.
 // Drop-in replacement for the legacy NavBar in App.jsx.
 
+import { useState, useEffect } from 'react';
 import { useIsDesktop, Avatar } from './primitives';
 import { FONT_UI } from './tokens';
 import {
   Cart, Pkg, Users, Cash, Bell, Logout, Receipt, Edit, Truck,
 } from './Icons';
+
+const API_BASE = import.meta.env.VITE_API_URL ?? `http://${window.location.hostname}:8000`;
 
 
 // One source of truth for the navigation items. `key` lines up with the
@@ -102,13 +105,18 @@ function Sidebar({ theme, screen, setScreen, currentUser, onLogout }) {
 // ─────────────────────────────────────────────────────────────
 // Desktop top bar
 // ─────────────────────────────────────────────────────────────
-function DesktopTopBar({ theme, notifCount = 0, onBellClick }) {
+function DesktopTopBar({ theme, notifCount = 0, onBellClick, dolar }) {
   return (
     <div style={{
       height: 60, borderBottom: `1px solid ${theme.border}`, background: theme.surface,
-      padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+      padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       gap: 16, flexShrink: 0,
     }}>
+      {dolar?.compra ? (
+        <span style={{ fontSize: 12, color: theme.text2, fontWeight: 600, letterSpacing: 0.6, whiteSpace: 'nowrap' }}>
+          DOLAR BLUE CÓRDOBA&nbsp;&nbsp;COMPRA ${dolar.compra}&nbsp;&nbsp;VENTA ${dolar.venta}
+        </span>
+      ) : <div />}
       <button
         onClick={onBellClick}
         style={{
@@ -178,6 +186,15 @@ function BottomNav({ theme, screen, setScreen, currentUser }) {
 // ─────────────────────────────────────────────────────────────
 export function AppShell({ theme, screen, setScreen, currentUser, onLogout, children, notifCount, onBellClick }) {
   const desktop = useIsDesktop();
+  const [dolar, setDolar] = useState(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/dolar-blue`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.compra) setDolar(d); })
+      .catch(() => {});
+  }, []);
+
   if (desktop) {
     return (
       <div style={{
@@ -187,7 +204,7 @@ export function AppShell({ theme, screen, setScreen, currentUser, onLogout, chil
         <Sidebar theme={theme} screen={screen} setScreen={setScreen}
                  currentUser={currentUser} onLogout={onLogout} />
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <DesktopTopBar theme={theme} notifCount={notifCount} onBellClick={onBellClick} />
+          <DesktopTopBar theme={theme} notifCount={notifCount} onBellClick={onBellClick} dolar={dolar} />
           <div style={{ flex: 1, overflow: 'auto', padding: 28 }}>
             {children}
           </div>
