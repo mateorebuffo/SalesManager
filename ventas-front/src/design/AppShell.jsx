@@ -234,6 +234,17 @@ export function AppShell({ theme, screen, setScreen, currentUser, onLogout, chil
       paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)',
       overflowX: 'hidden',
     }}>
+      {dolar?.compra && (
+        <div style={{
+          display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10,
+          padding: '5px 16px', background: theme.surface, borderBottom: `1px solid ${theme.border}`,
+        }}>
+          <span style={{ fontSize: 10, color: theme.text3, fontWeight: 700, letterSpacing: 0.6 }}>DOLAR BLUE</span>
+          <div style={{ width: 1, height: 12, background: theme.border }} />
+          <span style={{ fontSize: 10, color: theme.text3 }}>COMPRA <span style={{ color: theme.brand, fontWeight: 700, fontSize: 12 }}>${dolar.compra}</span></span>
+          <span style={{ fontSize: 10, color: theme.text3 }}>VENTA <span style={{ color: theme.brand, fontWeight: 700, fontSize: 12 }}>${dolar.venta}</span></span>
+        </div>
+      )}
       {children}
       <BottomNav theme={theme} screen={screen} setScreen={setScreen} currentUser={currentUser} />
     </div>
