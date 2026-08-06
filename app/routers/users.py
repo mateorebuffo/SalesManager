@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from ..auth import CurrentUser, get_current_user, hash_password, require_admin
 from ..database import get_db
-from ..models import Role, User
+from ..models import Client, Role, User
 from ..schemas import UserCreate, UserOut, UserPasswordUpdate, UserUpdate
 
 limiter = Limiter(key_func=get_remote_address)
@@ -32,11 +32,15 @@ def create_user(
         raise HTTPException(status_code=400, detail="El nombre de usuario ya existe.")
     if not db.query(Role).filter(Role.name == payload.role).first():
         raise HTTPException(status_code=400, detail=f"El rol '{payload.role}' no existe.")
+    if payload.client_id is not None:
+        if not db.query(Client).filter(Client.id == payload.client_id, Client.active == True).first():  # noqa: E712
+            raise HTTPException(status_code=400, detail="El cliente no existe o está inactivo.")
     user = User(
         username=payload.username,
         hashed_password=hash_password(payload.password),
         role=payload.role,
         active=True,
+        client_id=payload.client_id,
     )
     db.add(user)
     db.commit()
@@ -65,6 +69,11 @@ def update_user(
         user.role = payload.role
     if payload.active is not None:
         user.active = payload.active
+    if "client_id" in payload.model_fields_set:
+        if payload.client_id is not None:
+            if not db.query(Client).filter(Client.id == payload.client_id, Client.active == True).first():  # noqa: E712
+                raise HTTPException(status_code=400, detail="El cliente no existe o está inactivo.")
+        user.client_id = payload.client_id
     db.commit()
     db.refresh(user)
     return user

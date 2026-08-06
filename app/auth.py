@@ -35,6 +35,7 @@ class CurrentUser:
     username: str
     role: str
     permissions: list = field(default_factory=list)
+    client_id: int | None = None
 
 
 def hash_password(plain: str) -> str:
@@ -45,7 +46,7 @@ def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
-def create_token(user_id: int, username: str, role: str, permissions: list) -> str:
+def create_token(user_id: int, username: str, role: str, permissions: list, client_id: int | None = None) -> str:
     """Genera un JWT con id, username, role, permissions y expiración."""
     now = datetime.now(timezone.utc)
     payload = {
@@ -53,6 +54,7 @@ def create_token(user_id: int, username: str, role: str, permissions: list) -> s
         "uid": user_id,
         "role": role,
         "permissions": permissions,
+        "client_id": client_id,
         "exp": now + timedelta(hours=TOKEN_EXPIRE_HOURS),
         "iat": now,
     }
@@ -77,7 +79,8 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> CurrentUser:
         if not username or not user_id or not role:
             raise credentials_exc
         permissions: list = payload.get("permissions", [])
-        return CurrentUser(id=user_id, username=username, role=role, permissions=permissions)
+        client_id: int | None = payload.get("client_id")
+        return CurrentUser(id=user_id, username=username, role=role, permissions=permissions, client_id=client_id)
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

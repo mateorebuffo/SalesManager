@@ -159,6 +159,7 @@ class User(Base):
     role = Column(String(50), nullable=False, server_default="operator")  # nombre del rol
     active = Column(Boolean, nullable=False, server_default="true")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=True)
 
 
 class Notification(Base):

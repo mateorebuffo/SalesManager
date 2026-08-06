@@ -385,6 +385,7 @@ class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=80)
     password: str = Field(max_length=200)
     role: str = Field(default="operator", min_length=1, max_length=50)
+    client_id: Optional[int] = None
 
     @field_validator("password")
     @classmethod
@@ -397,6 +398,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     role: Optional[str] = Field(default=None, min_length=1, max_length=50)
     active: Optional[bool] = None
+    client_id: Optional[int] = None
 
 
 class UserPasswordUpdate(BaseModel):
@@ -416,6 +418,7 @@ class UserOut(BaseModel):
     role: str
     active: bool
     created_at: datetime
+    client_id: Optional[int] = None
 
     model_config = {"from_attributes": True}
 

@@ -35,6 +35,7 @@ function parseToken(token) {
       username: payload.sub,
       role: payload.role,
       permissions: payload.permissions ?? [],
+      client_id: payload.client_id ?? null,
     };
   } catch {
     return null;
@@ -4033,7 +4034,7 @@ const SCREEN_OPTIONS = [
 ];
 
 /** Pantalla: Usuarios (solo admin) */
-function UsersScreen({ pushToast, currentUser }) {
+function UsersScreen({ pushToast, currentUser, clients = [] }) {
   const [activeTab, setActiveTab] = useState("users");
   const [roles, setRoles] = useState([]);
 
@@ -4076,6 +4077,7 @@ function UsersScreen({ pushToast, currentUser }) {
     const [newPassword, setNewPassword] = useState("");
     const [newRole, setNewRole] = useState(roles[0]?.name ?? "operator");
     const [submitting, setSubmitting] = useState(false);
+    const [newClientId, setNewClientId] = useState("");
     const [changePwdId, setChangePwdId] = useState(null);
     const [changePwdValue, setChangePwdValue] = useState("");
     const [changePwdSubmitting, setChangePwdSubmitting] = useState(false);
@@ -4104,11 +4106,11 @@ function UsersScreen({ pushToast, currentUser }) {
       try {
         const res = await apiFetch(`${API}/users`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: newUsername.trim(), password: newPassword, role: newRole }),
+          body: JSON.stringify({ username: newUsername.trim(), password: newPassword, role: newRole, client_id: newClientId ? Number(newClientId) : null }),
         });
         if (!res.ok) throw new Error(await apiErr(res));
         pushToast("Usuario creado ✅", "success");
-        setNewUsername(""); setNewPassword(""); setShowForm(false);
+        setNewUsername(""); setNewPassword(""); setNewClientId(""); setShowForm(false);
         fetchUsers();
       } catch (e) { pushToast(e.message || "Error", "error"); }
       finally { setSubmitting(false); }
@@ -4134,6 +4136,17 @@ function UsersScreen({ pushToast, currentUser }) {
         if (!res.ok) throw new Error(await apiErr(res));
         fetchUsers();
       } catch (e) { pushToast(e.message || "Error actualizando rol", "error"); }
+    };
+
+    const changeClient = async (u, clientId) => {
+      try {
+        const res = await apiFetch(`${API}/users/${u.id}`, {
+          method: "PUT", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ client_id: clientId ? Number(clientId) : null }),
+        });
+        if (!res.ok) throw new Error(await apiErr(res));
+        fetchUsers();
+      } catch (e) { pushToast(e.message || "Error actualizando cliente", "error"); }
     };
 
     const submitChangePwd = async () => {
@@ -4166,6 +4179,10 @@ function UsersScreen({ pushToast, currentUser }) {
             <select style={selectStyle} value={newRole} onChange={(e) => setNewRole(e.target.value)}>
               {roles.map((r) => <option key={r.id} value={r.name}>{r.name.charAt(0).toUpperCase() + r.name.slice(1)}</option>)}
             </select>
+            <select style={selectStyle} value={newClientId} onChange={(e) => setNewClientId(e.target.value)}>
+              <option value="">Sin cliente vinculado</option>
+              {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
             <button type="button" disabled={submitting} onClick={createUser}
               style={{ height: 48, borderRadius: 12, border: "none", background: submitting ? "#3b3b8a" : "#5C82FF", color: "#fff", fontWeight: 900, cursor: "pointer" }}>
               {submitting ? "Creando..." : "Crear usuario"}
@@ -4179,6 +4196,7 @@ function UsersScreen({ pushToast, currentUser }) {
               <div style={{ fontWeight: 900, fontSize: 15 }}>{u.username}</div>
               <div style={{ fontSize: 12, color: u.role === "admin" ? "#5C82FF" : "#6E7A98", fontWeight: 700, marginTop: 2 }}>
                 {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
+                {u.client_id && <span style={{ marginLeft: 8, color: "#34d399" }}>· {clients.find(c => c.id === u.client_id)?.name ?? `Cliente #${u.client_id}`}</span>}
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -4186,6 +4204,13 @@ function UsersScreen({ pushToast, currentUser }) {
                 <select value={u.role} onChange={(e) => changeRole(u, e.target.value)}
                   style={{ height: 34, borderRadius: 8, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", padding: "0 8px", fontSize: 13, cursor: "pointer" }}>
                   {roles.map((r) => <option key={r.id} value={r.name}>{r.name.charAt(0).toUpperCase() + r.name.slice(1)}</option>)}
+                </select>
+              )}
+              {u.id !== currentUser.id && (
+                <select value={u.client_id ?? ""} onChange={(e) => changeClient(u, e.target.value)}
+                  style={{ height: 34, borderRadius: 8, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", padding: "0 8px", fontSize: 13, cursor: "pointer" }}>
+                  <option value="">Sin cliente</option>
+                  {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               )}
               <button type="button" onClick={() => { setChangePwdId(u.id); setChangePwdValue(""); }}
@@ -4381,6 +4406,196 @@ function UsersScreen({ pushToast, currentUser }) {
 }
 
 /** Pantalla: Login */
+function ClientPortalScreen({ currentUser, onLogout }) {
+  const [activeTab, setActiveTab] = useState("entregas");
+  const [deliveries, setDeliveries] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [statement, setStatement] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [toasts, setToasts] = useState([]);
+
+  const removeToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
+  const pushToast = (message, type = "info", ms = 2200) => {
+    const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    setToasts((prev) => [...prev, { id, message, type }]);
+    window.setTimeout(() => removeToast(id), ms);
+  };
+
+  useEffect(() => {
+    document.documentElement.style.background = "#0A1124";
+    document.body.style.background = "#0A1124";
+    document.body.style.margin = "0";
+  }, []);
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      setLoading(true);
+      try {
+        const [dRes, pRes, sRes] = await Promise.all([
+          apiFetch(`${API}/clients/${currentUser.client_id}/deliveries`),
+          apiFetch(`${API}/clients/${currentUser.client_id}/payments`),
+          apiFetch(`${API}/clients/${currentUser.client_id}/statement`),
+        ]);
+        if (dRes.ok) { const d = await dRes.json(); setDeliveries(d.deliveries ?? []); }
+        if (pRes.ok) setPayments(await pRes.json());
+        if (sRes.ok) setStatement(await sRes.json());
+      } catch { pushToast("Error cargando datos", "error"); }
+      setLoading(false);
+    };
+    fetchAll();
+  }, [currentUser.client_id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const t = themes.dark;
+
+  const tabBtn = (key, label) => (
+    <button key={key} type="button" onClick={() => setActiveTab(key)} style={{
+      flex: 1, height: 40, borderRadius: 10, cursor: "pointer",
+      border: activeTab === key ? "1px solid #5C82FF" : "1px solid #1F2A4A",
+      background: activeTab === key ? "#1A2453" : "#0A1124",
+      color: activeTab === key ? "#5C82FF" : "#6E7A98",
+      fontWeight: 900, fontSize: 14,
+    }}>{label}</button>
+  );
+
+  const cellStyle = { padding: "10px 10px", borderBottom: "1px solid #1F2A4A", fontSize: 13, color: "#fff", whiteSpace: "nowrap" };
+  const hStyle = { ...cellStyle, color: "#6E7A98", fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5 };
+
+  return (
+    <div style={{
+      minHeight: "100dvh", background: "#0A1124", color: "#fff",
+      fontFamily: '"Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+    }}>
+      <ToastHost toasts={toasts} removeToast={removeToast} />
+
+      {/* Header */}
+      <div style={{
+        position: "sticky", top: 0, zIndex: 100,
+        background: "#121A33", borderBottom: "1px solid #1F2A4A",
+        padding: "0 16px", height: 56,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 9,
+            background: "linear-gradient(135deg, #5C82FF, #3b5fe0)",
+            display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
+          }}><CartIcon size={17} /></div>
+          <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: -0.3 }}>SManager</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ fontSize: 13, color: "#6E7A98", fontWeight: 600 }}>{currentUser.username}</div>
+          <button type="button" onClick={() => { localStorage.removeItem("auth_token"); onLogout(); }}
+            style={{ height: 34, padding: "0 14px", borderRadius: 9, border: "1px solid #1F2A4A", background: "#0A1124", color: "#f87171", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+            Salir
+          </button>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 700, margin: "0 auto", padding: "20px 16px" }}>
+        {/* Balance card */}
+        {statement && (
+          <div style={{ border: "1px solid #1F2A4A", borderRadius: 16, background: "#121A33", padding: "18px 20px", marginBottom: 20 }}>
+            <div style={{ fontWeight: 900, fontSize: 17, marginBottom: 12 }}>{statement.client_name}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              {(() => {
+                const totalDelivered = statement.sales?.reduce((s, r) => s + Number(r.total), 0) ?? 0;
+                const totalBalance = Number(statement.total_balance);
+                const totalPaid = totalDelivered - totalBalance;
+                return [
+                  { label: "Total entregado", value: totalDelivered, color: "#fff" },
+                  { label: "Total pagado", value: totalPaid, color: "#34d399" },
+                  { label: "Saldo pendiente", value: totalBalance, color: totalBalance > 0 ? "#f87171" : "#34d399" },
+                ].map(({ label, value, color }) => (
+                  <div key={label} style={{ background: "#0A1124", borderRadius: 12, padding: "12px 14px" }}>
+                    <div style={{ fontSize: 11, color: "#6E7A98", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>{label}</div>
+                    <div style={{ fontWeight: 900, fontSize: 18, color }}>${value.toFixed(2)}</div>
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* Tabs */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          {tabBtn("entregas", "Entregas")}
+          {tabBtn("pagos", "Pagos")}
+        </div>
+
+        {loading ? (
+          <div style={{ color: "#6E7A98", padding: 24, textAlign: "center" }}>Cargando...</div>
+        ) : activeTab === "entregas" ? (
+          deliveries.length === 0 ? (
+            <div style={{ color: "#6E7A98", padding: 24, textAlign: "center" }}>Sin entregas registradas.</div>
+          ) : (
+            <div style={{ border: "1px solid #1F2A4A", borderRadius: 14, overflow: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={hStyle}>Fecha</th>
+                    <th style={hStyle}>Producto</th>
+                    <th style={{ ...hStyle, textAlign: "right" }}>Cant.</th>
+                    <th style={{ ...hStyle, textAlign: "right" }}>Precio</th>
+                    <th style={{ ...hStyle, textAlign: "right" }}>Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deliveries.map((d, i) => (
+                    <tr key={i} style={{ background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)" }}>
+                      <td style={cellStyle}>{formatArDate(d.sale_date)}</td>
+                      <td style={{ ...cellStyle, whiteSpace: "normal", maxWidth: 180 }}>
+                        <div style={{ fontWeight: 700 }}>{d.product_name}</div>
+                        {d.product_type && <div style={{ fontSize: 11, color: "#6E7A98" }}>{d.product_type}</div>}
+                        {d.notes && <div style={{ fontSize: 11, color: "#5C82FF" }}>{d.notes}</div>}
+                      </td>
+                      <td style={{ ...cellStyle, textAlign: "right" }}>{Number(d.quantity).toFixed(2)}</td>
+                      <td style={{ ...cellStyle, textAlign: "right" }}>${Number(d.unit_price).toFixed(2)}</td>
+                      <td style={{ ...cellStyle, textAlign: "right", fontWeight: 700 }}>${Number(d.subtotal).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        ) : (
+          payments.length === 0 ? (
+            <div style={{ color: "#6E7A98", padding: 24, textAlign: "center" }}>Sin pagos registrados.</div>
+          ) : (
+            <div style={{ border: "1px solid #1F2A4A", borderRadius: 14, overflow: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={hStyle}>Fecha</th>
+                    <th style={hStyle}>Tipo</th>
+                    <th style={{ ...hStyle, textAlign: "right" }}>Monto</th>
+                    <th style={hStyle}>Notas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.map((p, i) => (
+                    <tr key={p.payment_id} style={{ background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)" }}>
+                      <td style={cellStyle}>{formatArDate(p.payment_date)}</td>
+                      <td style={cellStyle}>
+                        <span style={{
+                          fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 6,
+                          background: p.kind === "general" ? "rgba(92,130,255,0.15)" : "rgba(52,211,153,0.15)",
+                          color: p.kind === "general" ? "#5C82FF" : "#34d399",
+                        }}>{p.kind === "general" ? "General" : `Venta #${p.sale_id}`}</span>
+                      </td>
+                      <td style={{ ...cellStyle, textAlign: "right", fontWeight: 700, color: "#34d399" }}>${Number(p.amount).toFixed(2)}</td>
+                      <td style={{ ...cellStyle, color: "#6E7A98", whiteSpace: "normal", maxWidth: 160 }}>{p.notes ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
 function LoginScreen({ onLogin }) {
   const t = themes.dark;
   const [username, setUsername] = useState("");
@@ -4548,6 +4763,7 @@ export default function App() {
   };
 
   if (!token || !currentUser) return <LoginScreen onLogin={handleLogin} />;
+  if (currentUser.client_id) return <ClientPortalScreen currentUser={currentUser} onLogout={handleLogout} />;
 
   return <AppShell onLogout={handleLogout} currentUser={currentUser} />;
 }
@@ -4683,7 +4899,7 @@ function AppShell({ onLogout, currentUser }) {
             pushToast={pushToast} onSupplierCreated={refreshClients}
           />
         ) : screen === "users" ? (
-          <UsersScreen pushToast={pushToast} currentUser={currentUser} />
+          <UsersScreen pushToast={pushToast} currentUser={currentUser} clients={clients.filter(c => !c.is_supplier)} />
         ) : (
           <ProductsScreen
             products={products} priceLists={priceLists}

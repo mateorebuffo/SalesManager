@@ -33,5 +33,5 @@ def login(request: Request, form: OAuth2PasswordRequestForm = Depends(), db: Ses
         role_obj = db.query(Role).filter(Role.name == user.role).first()
         permissions = role_obj.permissions if role_obj else []
 
-    token = create_token(user_id=user.id, username=user.username, role=user.role, permissions=permissions)
+    token = create_token(user_id=user.id, username=user.username, role=user.role, permissions=permissions, client_id=user.client_id)
     return {"access_token": token, "token_type": "bearer"}
