@@ -3792,15 +3792,27 @@ function SuppliersScreen({ suppliers, allClients = [], products = [], pushToast,
       ) : (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 12 }}>
-              <div style={{ color: "#6E7A98", fontSize: 12 }}>Les debemos</div>
-              <div style={{ fontWeight: 900, fontSize: 20, color: totalOwed > 0 ? "#f87171" : "#34d399" }}>
-                ${totalOwed.toFixed(2)}
+            <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ color: "#6E7A98", fontSize: 12 }}>Les debemos</div>
+                <div style={{ fontWeight: 900, fontSize: 20, color: totalOwed > 0 ? "#f87171" : "#34d399" }}>
+                  ${totalOwed.toFixed(2)}
+                </div>
               </div>
+              <button type="button" title="Exportar compras" onClick={() => copyToClipboard(buildPurchasesText())}
+                style={{ width: 38, height: 38, borderRadius: 10, border: "1px solid #1F2A4A", background: "#121A33", color: "#6E7A98", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                <Receipt size={18} />
+              </button>
             </div>
-            <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 12 }}>
-              <div style={{ color: "#6E7A98", fontSize: 12 }}>Pagado a ellos</div>
-              <div style={{ fontWeight: 900, fontSize: 20 }}>${totalPaid.toFixed(2)}</div>
+            <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ color: "#6E7A98", fontSize: 12 }}>Pagado a ellos</div>
+                <div style={{ fontWeight: 900, fontSize: 20 }}>${totalPaid.toFixed(2)}</div>
+              </div>
+              <button type="button" title="Exportar pagos" onClick={() => copyToClipboard(buildPaymentsText())}
+                style={{ width: 38, height: 38, borderRadius: 10, border: "1px solid #1F2A4A", background: "#121A33", color: "#6E7A98", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                <Cash size={18} />
+              </button>
             </div>
           </div>
 
@@ -3813,11 +3825,6 @@ function SuppliersScreen({ suppliers, allClients = [], products = [], pushToast,
           {/* ===== Compras ===== */}
           {tab === "purchases" && (
             <>
-              {purchasesBySale.length > 0 && (
-                <button type="button" onClick={() => copyToClipboard(buildPurchasesText())} style={exportBtnStyle}>
-                  Exportar compras
-                </button>
-              )}
               {purchasesBySale.length === 0 ? (
                 <div style={{ color: "#6E7A98" }}>No hay compras registradas.</div>
               ) : (
@@ -3862,11 +3869,6 @@ function SuppliersScreen({ suppliers, allClients = [], products = [], pushToast,
                   {paySubmitting ? "Registrando..." : "Confirmar entrega"}
                 </button>
               </div>
-              {supplierPayments.length > 0 && (
-                <button type="button" onClick={() => copyToClipboard(buildPaymentsText())} style={exportBtnStyle}>
-                  Exportar pagos
-                </button>
-              )}
               {supplierPayments.length === 0 ? (
                 <div style={{ color: "#6E7A98" }}>No hay entregas registradas.</div>
               ) : (
