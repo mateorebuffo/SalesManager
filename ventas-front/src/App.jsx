@@ -3,7 +3,7 @@ import { themes } from "./design/tokens";
 import "./design/styles.css";
 import { AppShell as NewShell } from "./design/AppShell";
 import SaleScreen from "./design/screens/SaleScreen";
-import { Cart as CartIcon, Receipt, Cash } from "./design/Icons";
+import { Cart as CartIcon, Receipt, Cash, Edit as EditIcon } from "./design/Icons";
 
 // En producción setear VITE_API_URL en el archivo .env de Netlify/Railway
 const API = import.meta.env.VITE_API_URL ?? `http://${window.location.hostname}:8000`;
@@ -191,48 +191,41 @@ function SearchDropdown({
             color: "#fff",
           }}
         >
-          <div style={{ fontWeight: 800, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getLabel(selected)}</div>
-
-          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getLabel(selected)}</div>
             {onEdit && (
               <button
                 type="button"
+                title="Editar"
+                onClick={onEdit}
                 style={{
-                  height: 44,
-                  padding: "0 14px",
-                  borderRadius: 12,
+                  width: 32, height: 32, borderRadius: 8, flexShrink: 0,
                   border: "1px solid rgba(92,130,255,0.4)",
                   background: "rgba(92,130,255,0.1)",
-                  color: "#5C82FF",
-                  fontWeight: 800,
-                  cursor: "pointer",
+                  color: "#5C82FF", cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
                 }}
-                onClick={onEdit}
               >
-                Editar
+                <EditIcon size={15} />
               </button>
             )}
-            <button
-              type="button"
-              style={{
-                height: 44,
-                minWidth: 110,
-                borderRadius: 12,
-                border: "1px solid #2B3960",
-                background: "#0A1124",
-                color: "#fff",
-                fontWeight: 800,
-              }}
-              onClick={() => {
-                setSelected(null);
-                setQuery("");
-                setOpen(true);
-                setTimeout(() => inputRef?.current?.focus(), 0);
-              }}
-            >
-              Cambiar
-            </button>
           </div>
+          <button
+            type="button"
+            style={{
+              height: 44, minWidth: 110, borderRadius: 12, flexShrink: 0,
+              border: "1px solid #2B3960", background: "#0A1124",
+              color: "#fff", fontWeight: 800, cursor: "pointer",
+            }}
+            onClick={() => {
+              setSelected(null);
+              setQuery("");
+              setOpen(true);
+              setTimeout(() => inputRef?.current?.focus(), 0);
+            }}
+          >
+            Cambiar
+          </button>
         </div>
       ) : (
         <div
