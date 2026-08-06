@@ -154,6 +154,35 @@ def get_dolar_blue():
     return data if data else {"compra": None, "venta": None}
 
 
+_usdt_cache: dict = {"data": None, "ts": 0.0}
+
+
+def _fetch_usdt() -> dict | None:
+    now = time.time()
+    if _usdt_cache["data"] and now - _usdt_cache["ts"] < _DOLAR_TTL:
+        return _usdt_cache["data"]
+    try:
+        req = UrlRequest(
+            "https://dolarapi.com/v1/dolares/cripto",
+            headers={"User-Agent": "Mozilla/5.0"},
+        )
+        with urlopen(req, timeout=8) as r:
+            data = json.loads(r.read())
+        result = {"compra": f"{data['compra']:.2f}", "venta": f"{data['venta']:.2f}"}
+        _usdt_cache["data"] = result
+        _usdt_cache["ts"] = now
+        return result
+    except Exception:
+        pass
+    return _usdt_cache["data"]
+
+
+@app.get("/dolar-usdt")
+def get_dolar_usdt():
+    data = _fetch_usdt()
+    return data if data else {"compra": None, "venta": None}
+
+
 # ── CORS ──────────────────────────────────────────────────────────────────────
 _prod_origin = os.getenv("ALLOWED_ORIGIN", "").strip()
 _is_prod = os.getenv("ENVIRONMENT") == "production"

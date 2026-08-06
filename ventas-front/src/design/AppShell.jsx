@@ -105,31 +105,39 @@ function Sidebar({ theme, screen, setScreen, currentUser, onLogout }) {
 // ─────────────────────────────────────────────────────────────
 // Desktop top bar
 // ─────────────────────────────────────────────────────────────
-function DesktopTopBar({ theme, notifCount = 0, onBellClick, dolar }) {
+function RatePill({ theme, label, data }) {
+  if (!data?.compra) return null;
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12,
+      background: theme.surfaceSunk, border: `1px solid ${theme.border}`,
+      borderRadius: 10, padding: '6px 14px', whiteSpace: 'nowrap',
+    }}>
+      <span style={{ fontSize: 10, color: theme.text3, fontWeight: 700, letterSpacing: 0.8 }}>{label}</span>
+      <div style={{ width: 1, height: 14, background: theme.border }} />
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+        <span style={{ fontSize: 10, color: theme.text3 }}>COMPRA</span>
+        <span style={{ fontSize: 15, color: theme.brand, fontWeight: 700 }}>${data.compra}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+        <span style={{ fontSize: 10, color: theme.text3 }}>VENTA</span>
+        <span style={{ fontSize: 15, color: theme.brand, fontWeight: 700 }}>${data.venta}</span>
+      </div>
+    </div>
+  );
+}
+
+function DesktopTopBar({ theme, notifCount = 0, onBellClick, dolar, usdt }) {
   return (
     <div style={{
       height: 60, borderBottom: `1px solid ${theme.border}`, background: theme.surface,
       padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       gap: 16, flexShrink: 0,
     }}>
-      {dolar?.compra ? (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          background: theme.surfaceSunk, border: `1px solid ${theme.border}`,
-          borderRadius: 10, padding: '6px 14px', whiteSpace: 'nowrap',
-        }}>
-          <span style={{ fontSize: 10, color: theme.text3, fontWeight: 700, letterSpacing: 0.8 }}>DOLAR BLUE</span>
-          <div style={{ width: 1, height: 14, background: theme.border }} />
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-            <span style={{ fontSize: 10, color: theme.text3 }}>COMPRA</span>
-            <span style={{ fontSize: 15, color: theme.brand, fontWeight: 700 }}>${dolar.compra}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-            <span style={{ fontSize: 10, color: theme.text3 }}>VENTA</span>
-            <span style={{ fontSize: 15, color: theme.brand, fontWeight: 700 }}>${dolar.venta}</span>
-          </div>
-        </div>
-      ) : <div />}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <RatePill theme={theme} label="DOLAR BLUE" data={dolar} />
+        <RatePill theme={theme} label="USDT" data={usdt} />
+      </div>
       <button
         onClick={onBellClick}
         style={{
@@ -200,11 +208,16 @@ function BottomNav({ theme, screen, setScreen, currentUser }) {
 export function AppShell({ theme, screen, setScreen, currentUser, onLogout, children, notifCount, onBellClick }) {
   const desktop = useIsDesktop();
   const [dolar, setDolar] = useState(null);
+  const [usdt, setUsdt] = useState(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/dolar-blue`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.compra) setDolar(d); })
+      .catch(() => {});
+    fetch(`${API_BASE}/dolar-usdt`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.compra) setUsdt(d); })
       .catch(() => {});
   }, []);
 
@@ -217,7 +230,7 @@ export function AppShell({ theme, screen, setScreen, currentUser, onLogout, chil
         <Sidebar theme={theme} screen={screen} setScreen={setScreen}
                  currentUser={currentUser} onLogout={onLogout} />
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <DesktopTopBar theme={theme} notifCount={notifCount} onBellClick={onBellClick} dolar={dolar} />
+          <DesktopTopBar theme={theme} notifCount={notifCount} onBellClick={onBellClick} dolar={dolar} usdt={usdt} />
           <div style={{ flex: 1, overflow: 'auto', padding: 28 }}>
             {children}
           </div>
@@ -234,15 +247,23 @@ export function AppShell({ theme, screen, setScreen, currentUser, onLogout, chil
       paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)',
       overflowX: 'hidden',
     }}>
-      {dolar?.compra && (
+      {(dolar?.compra || usdt?.compra) && (
         <div style={{
-          display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10,
+          display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 14,
           padding: '5px 16px', background: theme.surface, borderBottom: `1px solid ${theme.border}`,
+          flexWrap: 'wrap',
         }}>
-          <span style={{ fontSize: 10, color: theme.text3, fontWeight: 700, letterSpacing: 0.6 }}>DOLAR BLUE</span>
-          <div style={{ width: 1, height: 12, background: theme.border }} />
-          <span style={{ fontSize: 10, color: theme.text3 }}>COMPRA <span style={{ color: theme.brand, fontWeight: 700, fontSize: 12 }}>${dolar.compra}</span></span>
-          <span style={{ fontSize: 10, color: theme.text3 }}>VENTA <span style={{ color: theme.brand, fontWeight: 700, fontSize: 12 }}>${dolar.venta}</span></span>
+          {dolar?.compra && <>
+            <span style={{ fontSize: 10, color: theme.text3, fontWeight: 700, letterSpacing: 0.6 }}>DOLAR BLUE</span>
+            <span style={{ fontSize: 10, color: theme.text3 }}>COMPRA <span style={{ color: theme.brand, fontWeight: 700, fontSize: 12 }}>${dolar.compra}</span></span>
+            <span style={{ fontSize: 10, color: theme.text3 }}>VENTA <span style={{ color: theme.brand, fontWeight: 700, fontSize: 12 }}>${dolar.venta}</span></span>
+          </>}
+          {dolar?.compra && usdt?.compra && <div style={{ width: 1, height: 12, background: theme.border }} />}
+          {usdt?.compra && <>
+            <span style={{ fontSize: 10, color: theme.text3, fontWeight: 700, letterSpacing: 0.6 }}>USDT</span>
+            <span style={{ fontSize: 10, color: theme.text3 }}>COMPRA <span style={{ color: theme.brand, fontWeight: 700, fontSize: 12 }}>${usdt.compra}</span></span>
+            <span style={{ fontSize: 10, color: theme.text3 }}>VENTA <span style={{ color: theme.brand, fontWeight: 700, fontSize: 12 }}>${usdt.venta}</span></span>
+          </>}
         </div>
       )}
       {children}
