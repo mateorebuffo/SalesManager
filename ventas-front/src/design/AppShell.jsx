@@ -3,12 +3,98 @@
 // `screen` state. Wrap your screens with it and provide currentUser + onLogout.
 // Drop-in replacement for the legacy NavBar in App.jsx.
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useIsDesktop, Avatar } from './primitives';
-import { FONT_UI } from './tokens';
+import { FONT_UI, FONT_MONO } from './tokens';
 import {
-  Cart, Pkg, Users, Cash, Bell, Logout, Receipt, Edit, Truck,
+  Cart, Pkg, Users, Cash, Bell, Logout, Receipt, Edit, Truck, Calc,
 } from './Icons';
+
+function Calculator({ theme, onClose }) {
+  const [expr, setExpr] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const result = useMemo(() => {
+    if (!expr) return '0';
+    try {
+      const cleaned = expr.replace(/×/g, '*').replace(/÷/g, '/');
+      if (!/^[\d+\-*/().% ]+$/.test(cleaned)) return 'Error';
+      // eslint-disable-next-line no-new-func
+      const r = new Function('return ' + cleaned)();
+      if (typeof r !== 'number' || !isFinite(r)) return 'Error';
+      return String(parseFloat(r.toFixed(10)));
+    } catch { return 'Error'; }
+  }, [expr]);
+
+  const press = (k) => {
+    if (k === 'AC') { setExpr(''); return; }
+    if (k === '⌫') { setExpr(e => e.slice(0, -1)); return; }
+    if (k === '=') { if (result !== 'Error') setExpr(result); return; }
+    setExpr(e => e + k);
+  };
+
+  const copy = () => {
+    navigator.clipboard.writeText(result);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  const ROWS = [
+    ['AC', '(', ')', '÷'],
+    ['7',  '8', '9', '×'],
+    ['4',  '5', '6', '-'],
+    ['1',  '2', '3', '+'],
+    ['0',  '.', '⌫', '='],
+  ];
+
+  const btnColor = (k) => {
+    if (['÷','×','-','+','='].includes(k)) return { bg: theme.brand, border: theme.brand, color: '#fff' };
+    if (k === 'AC') return { bg: theme.danger + '22', border: theme.danger + '44', color: theme.danger };
+    if (['(',')','.','⌫'].includes(k)) return { bg: theme.surface2, border: theme.border, color: theme.text };
+    return { bg: theme.surfaceSunk, border: theme.border, color: theme.text };
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+    }} onClick={onClose}>
+      <div style={{
+        background: theme.surface, borderRadius: 20, padding: 20, width: 320,
+        border: `1px solid ${theme.border}`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{
+          background: theme.surfaceSunk, borderRadius: 12, padding: '12px 16px',
+          marginBottom: 16, border: `1px solid ${theme.border}`,
+        }}>
+          <div style={{ fontSize: 12, color: theme.text3, minHeight: 18, textAlign: 'right', wordBreak: 'break-all', fontFamily: FONT_MONO }}>{expr || '0'}</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+            <button onClick={copy} style={{
+              background: copied ? theme.brand : 'transparent',
+              border: `1px solid ${copied ? theme.brand : theme.border}`,
+              borderRadius: 8, color: copied ? '#fff' : theme.text3,
+              fontSize: 11, padding: '4px 12px', cursor: 'pointer', fontFamily: 'inherit',
+            }}>{copied ? '✓ Copiado' : 'Copiar'}</button>
+            <div style={{ fontSize: 30, fontWeight: 700, color: result === 'Error' ? theme.danger : theme.text, fontFamily: FONT_MONO }}>{result}</div>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+          {ROWS.flat().map(k => {
+            const { bg, border, color } = btnColor(k);
+            return (
+              <button key={k} onClick={() => press(k)} style={{
+                height: 58, borderRadius: 12, background: bg,
+                border: `1px solid ${border}`, color, cursor: 'pointer',
+                fontSize: ['÷','×'].includes(k) ? 22 : k === '⌫' ? 18 : 20,
+                fontWeight: 600, fontFamily: FONT_MONO,
+              }}>{k}</button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const API_BASE = import.meta.env.VITE_API_URL ?? `http://${window.location.hostname}:8000`;
 
@@ -127,7 +213,7 @@ function RatePill({ theme, label, data }) {
   );
 }
 
-function DesktopTopBar({ theme, notifCount = 0, onBellClick, dolar, usdt }) {
+function DesktopTopBar({ theme, notifCount = 0, onBellClick, dolar, usdt, onCalcClick }) {
   return (
     <div style={{
       height: 60, borderBottom: `1px solid ${theme.border}`, background: theme.surface,
@@ -138,8 +224,14 @@ function DesktopTopBar({ theme, notifCount = 0, onBellClick, dolar, usdt }) {
         <RatePill theme={theme} label="DOLAR BLUE" data={dolar} />
         <RatePill theme={theme} label="USDT" data={usdt} />
       </div>
-      <button
-        onClick={onBellClick}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button onClick={onCalcClick} style={{
+          width: 40, height: 40, borderRadius: 12, background: theme.surfaceSunk,
+          border: `1px solid ${theme.border}`, color: theme.text2,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+        }}><Calc size={20} /></button>
+        <button
+          onClick={onBellClick}
         style={{
           width: 40, height: 40, borderRadius: 12, background: theme.surfaceSunk,
           border: `1px solid ${theme.border}`, color: theme.text2, position: 'relative',
@@ -160,6 +252,7 @@ function DesktopTopBar({ theme, notifCount = 0, onBellClick, dolar, usdt }) {
           </span>
         )}
       </button>
+      </div>
     </div>
   );
 }
@@ -209,6 +302,7 @@ export function AppShell({ theme, screen, setScreen, currentUser, onLogout, chil
   const desktop = useIsDesktop();
   const [dolar, setDolar] = useState(null);
   const [usdt, setUsdt] = useState(null);
+  const [showCalc, setShowCalc] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/dolar-blue`)
@@ -223,19 +317,22 @@ export function AppShell({ theme, screen, setScreen, currentUser, onLogout, chil
 
   if (desktop) {
     return (
-      <div style={{
-        display: 'flex', height: '100vh', background: theme.page,
-        fontFamily: FONT_UI, color: theme.text,
-      }}>
-        <Sidebar theme={theme} screen={screen} setScreen={setScreen}
-                 currentUser={currentUser} onLogout={onLogout} />
-        <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <DesktopTopBar theme={theme} notifCount={notifCount} onBellClick={onBellClick} dolar={dolar} usdt={usdt} />
-          <div style={{ flex: 1, overflow: 'auto', padding: 28 }}>
-            {children}
-          </div>
-        </main>
-      </div>
+      <>
+        <div style={{
+          display: 'flex', height: '100vh', background: theme.page,
+          fontFamily: FONT_UI, color: theme.text,
+        }}>
+          <Sidebar theme={theme} screen={screen} setScreen={setScreen}
+                   currentUser={currentUser} onLogout={onLogout} />
+          <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <DesktopTopBar theme={theme} notifCount={notifCount} onBellClick={onBellClick} dolar={dolar} usdt={usdt} onCalcClick={() => setShowCalc(true)} />
+            <div style={{ flex: 1, overflow: 'auto', padding: 28 }}>
+              {children}
+            </div>
+          </main>
+        </div>
+        {showCalc && <Calculator theme={theme} onClose={() => setShowCalc(false)} />}
+      </>
     );
   }
   // Mobile
@@ -249,22 +346,30 @@ export function AppShell({ theme, screen, setScreen, currentUser, onLogout, chil
     }}>
       {(dolar?.compra || usdt?.compra) && (
         <div style={{
-          display: 'flex', flexDirection: 'column', gap: 3,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '6px 16px', background: theme.surface, borderBottom: `1px solid ${theme.border}`,
         }}>
-          {[
-            { label: 'DOLAR BLUE', data: dolar },
-            { label: 'USDT',       data: usdt  },
-          ].filter(r => r.data?.compra).map(({ label, data }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 10, color: theme.text3, fontWeight: 700, letterSpacing: 0.6, minWidth: 80 }}>{label}</span>
-              <span style={{ fontSize: 10, color: theme.text3 }}>COMPRA <span style={{ color: theme.brand, fontWeight: 700, fontSize: 12 }}>${data.compra}</span></span>
-              <span style={{ fontSize: 10, color: theme.text3 }}>VENTA <span style={{ color: theme.brand, fontWeight: 700, fontSize: 12 }}>${data.venta}</span></span>
-            </div>
-          ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {[
+              { label: 'DOLAR BLUE', data: dolar },
+              { label: 'USDT',       data: usdt  },
+            ].filter(r => r.data?.compra).map(({ label, data }) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 10, color: theme.text3, fontWeight: 700, letterSpacing: 0.6, minWidth: 80 }}>{label}</span>
+                <span style={{ fontSize: 10, color: theme.text3 }}>COMPRA <span style={{ color: theme.brand, fontWeight: 700, fontSize: 12 }}>${data.compra}</span></span>
+                <span style={{ fontSize: 10, color: theme.text3 }}>VENTA <span style={{ color: theme.brand, fontWeight: 700, fontSize: 12 }}>${data.venta}</span></span>
+              </div>
+            ))}
+          </div>
+          <button onClick={() => setShowCalc(true)} style={{
+            width: 34, height: 34, borderRadius: 10, background: theme.surfaceSunk,
+            border: `1px solid ${theme.border}`, color: theme.text2,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+          }}><Calc size={18} /></button>
         </div>
       )}
       {children}
+      {showCalc && <Calculator theme={theme} onClose={() => setShowCalc(false)} />}
       <BottomNav theme={theme} screen={screen} setScreen={setScreen} currentUser={currentUser} />
     </div>
   );
