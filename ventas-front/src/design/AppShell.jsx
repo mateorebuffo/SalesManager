@@ -113,9 +113,22 @@ function DesktopTopBar({ theme, notifCount = 0, onBellClick, dolar }) {
       gap: 16, flexShrink: 0,
     }}>
       {dolar?.compra ? (
-        <span style={{ fontSize: 12, color: theme.text2, fontWeight: 600, letterSpacing: 0.6, whiteSpace: 'nowrap' }}>
-          DOLAR BLUE CÓRDOBA&nbsp;&nbsp;COMPRA ${dolar.compra}&nbsp;&nbsp;VENTA ${dolar.venta}
-        </span>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          background: theme.surfaceSunk, border: `1px solid ${theme.border}`,
+          borderRadius: 10, padding: '6px 14px', whiteSpace: 'nowrap',
+        }}>
+          <span style={{ fontSize: 10, color: theme.text3, fontWeight: 700, letterSpacing: 0.8 }}>DOLAR BLUE</span>
+          <div style={{ width: 1, height: 14, background: theme.border }} />
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+            <span style={{ fontSize: 10, color: theme.text3 }}>COMPRA</span>
+            <span style={{ fontSize: 15, color: theme.brand, fontWeight: 700 }}>${dolar.compra}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+            <span style={{ fontSize: 10, color: theme.text3 }}>VENTA</span>
+            <span style={{ fontSize: 15, color: theme.brand, fontWeight: 700 }}>${dolar.venta}</span>
+          </div>
+        </div>
       ) : <div />}
       <button
         onClick={onBellClick}
