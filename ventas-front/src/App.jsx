@@ -4405,7 +4405,6 @@ function UsersScreen({ pushToast, currentUser, clients = [] }) {
   );
 }
 
-/** Pantalla: Login */
 function ClientPortalScreen({ currentUser, onLogout }) {
   const [activeTab, setActiveTab] = useState("entregas");
   const [deliveries, setDeliveries] = useState([]);
@@ -4445,20 +4444,49 @@ function ClientPortalScreen({ currentUser, onLogout }) {
     fetchAll();
   }, [currentUser.client_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const t = themes.dark;
+  // Agrupar entregas por venta (sale_id)
+  const deliveryGroups = useMemo(() => {
+    const map = {};
+    for (const d of deliveries) {
+      if (!map[d.sale_id]) map[d.sale_id] = { sale_id: d.sale_id, sale_date: d.sale_date, items: [] };
+      map[d.sale_id].items.push(d);
+    }
+    return Object.values(map).sort((a, b) => new Date(b.sale_date) - new Date(a.sale_date));
+  }, [deliveries]);
 
-  const tabBtn = (key, label) => (
+  // Agrupar pagos por día (fecha local)
+  const paymentGroups = useMemo(() => {
+    const map = {};
+    for (const p of payments) {
+      const d = new Date(p.payment_date);
+      const day = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      if (!map[day]) map[day] = { day, items: [] };
+      map[day].items.push(p);
+    }
+    return Object.values(map).sort((a, b) => b.day.localeCompare(a.day));
+  }, [payments]);
+
+  const fmtDay = (day) => {
+    const d = new Date(day + "T12:00:00");
+    return new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(d);
+  };
+
+  const tabBtn = (key, label, count) => (
     <button key={key} type="button" onClick={() => setActiveTab(key)} style={{
-      flex: 1, height: 40, borderRadius: 10, cursor: "pointer",
+      flex: 1, height: 44, borderRadius: 12, cursor: "pointer",
       border: activeTab === key ? "1px solid #5C82FF" : "1px solid #1F2A4A",
       background: activeTab === key ? "#1A2453" : "#0A1124",
       color: activeTab === key ? "#5C82FF" : "#6E7A98",
-      fontWeight: 900, fontSize: 14,
-    }}>{label}</button>
+      fontWeight: 900, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+    }}>
+      {label}
+      {count > 0 && (
+        <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 20,
+          background: activeTab === key ? "rgba(92,130,255,0.25)" : "rgba(255,255,255,0.08)",
+          color: activeTab === key ? "#5C82FF" : "#6E7A98" }}>{count}</span>
+      )}
+    </button>
   );
-
-  const cellStyle = { padding: "10px 10px", borderBottom: "1px solid #1F2A4A", fontSize: 13, color: "#fff", whiteSpace: "nowrap" };
-  const hStyle = { ...cellStyle, color: "#6E7A98", fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5 };
 
   return (
     <div style={{
@@ -4467,9 +4495,9 @@ function ClientPortalScreen({ currentUser, onLogout }) {
     }}>
       <ToastHost toasts={toasts} removeToast={removeToast} />
 
-      {/* Header */}
+      {/* Header fijo */}
       <div style={{
-        position: "sticky", top: 0, zIndex: 100,
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
         background: "#121A33", borderBottom: "1px solid #1F2A4A",
         padding: "0 16px", height: 56,
         display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -4482,115 +4510,170 @@ function ClientPortalScreen({ currentUser, onLogout }) {
           }}><CartIcon size={17} /></div>
           <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: -0.3 }}>SManager</div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ fontSize: 13, color: "#6E7A98", fontWeight: 600 }}>{currentUser.username}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ fontSize: 13, color: "#6E7A98", fontWeight: 600, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentUser.username}</div>
           <button type="button" onClick={() => { localStorage.removeItem("auth_token"); onLogout(); }}
-            style={{ height: 34, padding: "0 14px", borderRadius: 9, border: "1px solid #1F2A4A", background: "#0A1124", color: "#f87171", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+            style={{ height: 32, padding: "0 14px", borderRadius: 9, border: "1px solid rgba(248,113,113,0.3)", background: "rgba(248,113,113,0.08)", color: "#f87171", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
             Salir
           </button>
         </div>
       </div>
 
-      <div style={{ maxWidth: 700, margin: "0 auto", padding: "20px 16px" }}>
-        {/* Balance card */}
-        {statement && (
-          <div style={{ border: "1px solid #1F2A4A", borderRadius: 16, background: "#121A33", padding: "18px 20px", marginBottom: 20 }}>
-            <div style={{ fontWeight: 900, fontSize: 17, marginBottom: 12 }}>{statement.client_name}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-              {(() => {
-                const totalDelivered = statement.sales?.reduce((s, r) => s + Number(r.total), 0) ?? 0;
-                const totalBalance = Number(statement.total_balance);
-                const totalPaid = totalDelivered - totalBalance;
-                return [
-                  { label: "Total entregado", value: totalDelivered, color: "#fff" },
-                  { label: "Total pagado", value: totalPaid, color: "#34d399" },
-                  { label: "Saldo pendiente", value: totalBalance, color: totalBalance > 0 ? "#f87171" : "#34d399" },
-                ].map(({ label, value, color }) => (
-                  <div key={label} style={{ background: "#0A1124", borderRadius: 12, padding: "12px 14px" }}>
-                    <div style={{ fontSize: 11, color: "#6E7A98", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>{label}</div>
-                    <div style={{ fontWeight: 900, fontSize: 18, color }}>${value.toFixed(2)}</div>
-                  </div>
-                ));
-              })()}
-            </div>
+      {/* Contenido — paddingTop compensa el header fijo */}
+      <div style={{ paddingTop: 56 }}>
+        <div style={{ maxWidth: 680, margin: "0 auto", padding: "20px 14px 40px" }}>
+
+          {/* Balance card */}
+          {statement && (() => {
+            const totalDelivered = statement.sales?.reduce((s, r) => s + Number(r.total), 0) ?? 0;
+            const totalBalance = Number(statement.total_balance);
+            const totalPaid = totalDelivered - totalBalance;
+            return (
+              <div style={{ border: "1px solid #1F2A4A", borderRadius: 16, background: "#121A33", marginBottom: 20, overflow: "hidden" }}>
+                <div style={{ padding: "14px 16px", borderBottom: "1px solid #1F2A4A", display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ fontWeight: 900, fontSize: 18 }}>{statement.client_name}</div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr" }}>
+                  {[
+                    { label: "Entregado", value: totalDelivered, color: "#fff" },
+                    { label: "Pagado", value: totalPaid, color: "#34d399" },
+                    { label: "Saldo", value: totalBalance, color: totalBalance > 0 ? "#f87171" : "#34d399" },
+                  ].map(({ label, value, color }, i, arr) => (
+                    <div key={label} style={{ padding: "14px 14px", borderRight: i < arr.length - 1 ? "1px solid #1F2A4A" : "none" }}>
+                      <div style={{ fontSize: 10, color: "#6E7A98", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>{label}</div>
+                      <div style={{ fontWeight: 900, fontSize: 17, color }}>${value.toFixed(2)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Tabs */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            {tabBtn("entregas", "Entregas", deliveryGroups.length)}
+            {tabBtn("pagos", "Pagos", paymentGroups.length)}
           </div>
-        )}
 
-        {/* Tabs */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-          {tabBtn("entregas", "Entregas")}
-          {tabBtn("pagos", "Pagos")}
+          {loading ? (
+            <div style={{ color: "#6E7A98", padding: 40, textAlign: "center" }}>Cargando...</div>
+          ) : activeTab === "entregas" ? (
+            deliveryGroups.length === 0 ? (
+              <div style={{ color: "#6E7A98", padding: 40, textAlign: "center" }}>Sin entregas registradas.</div>
+            ) : (
+              <div style={{ display: "grid", gap: 12 }}>
+                {deliveryGroups.map((g) => {
+                  const groupTotal = g.items.reduce((s, it) => s + Number(it.subtotal), 0);
+                  return (
+                    <div key={g.sale_id} style={{ border: "1px solid #1F2A4A", borderRadius: 14, background: "#121A33", overflow: "hidden" }}>
+                      {/* Cabecera del bloque */}
+                      <div style={{
+                        background: "linear-gradient(90deg, #1A2453, #151D3B)",
+                        padding: "10px 14px",
+                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                        borderBottom: "1px solid #1F2A4A",
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 14 }}>📦</span>
+                          <span style={{ fontWeight: 800, fontSize: 13, color: "#5C82FF" }}>Entrega #{g.sale_id}</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: "#A5B0CC" }}>{formatArDate(g.sale_date)}</div>
+                      </div>
+                      {/* Ítems */}
+                      {g.items.map((item, i) => (
+                        <div key={i} style={{
+                          padding: "11px 14px",
+                          borderBottom: i < g.items.length - 1 ? "1px solid #1F2A4A" : "none",
+                          display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10,
+                        }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, fontSize: 14 }}>{item.product_name}</div>
+                            {item.product_type && <div style={{ fontSize: 11, color: "#6E7A98", marginTop: 1 }}>{item.product_type}</div>}
+                            {item.notes && <div style={{ fontSize: 11, color: "#5C82FF", marginTop: 2 }}>{item.notes}</div>}
+                            <div style={{ fontSize: 12, color: "#A5B0CC", marginTop: 3 }}>
+                              {Number(item.quantity).toFixed(2)} × ${Number(item.unit_price).toFixed(2)}
+                            </div>
+                          </div>
+                          <div style={{ fontWeight: 900, fontSize: 15, color: "#fff", whiteSpace: "nowrap" }}>
+                            ${Number(item.subtotal).toFixed(2)}
+                          </div>
+                        </div>
+                      ))}
+                      {/* Total del bloque */}
+                      <div style={{
+                        padding: "9px 14px", background: "#0D1120",
+                        display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8,
+                      }}>
+                        <span style={{ fontSize: 12, color: "#6E7A98", fontWeight: 600 }}>Total entrega</span>
+                        <span style={{ fontWeight: 900, fontSize: 15, color: "#fff" }}>${groupTotal.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          ) : (
+            paymentGroups.length === 0 ? (
+              <div style={{ color: "#6E7A98", padding: 40, textAlign: "center" }}>Sin pagos registrados.</div>
+            ) : (
+              <div style={{ display: "grid", gap: 12 }}>
+                {paymentGroups.map((g) => {
+                  const dayTotal = g.items.reduce((s, p) => s + Number(p.amount), 0);
+                  return (
+                    <div key={g.day} style={{ border: "1px solid #1F2A4A", borderRadius: 14, background: "#121A33", overflow: "hidden" }}>
+                      {/* Cabecera día */}
+                      <div style={{
+                        background: "linear-gradient(90deg, #0D2218, #101A14)",
+                        padding: "10px 14px",
+                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                        borderBottom: "1px solid #1F2A4A",
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 14 }}>💰</span>
+                          <span style={{ fontWeight: 800, fontSize: 13, color: "#34d399", textTransform: "capitalize" }}>
+                            {fmtDay(g.day)}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Pagos del día */}
+                      {g.items.map((p, i) => (
+                        <div key={p.payment_id} style={{
+                          padding: "11px 14px",
+                          borderBottom: i < g.items.length - 1 ? "1px solid #1F2A4A" : "none",
+                          display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10,
+                        }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <span style={{
+                              display: "inline-block", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6,
+                              background: p.kind === "general" ? "rgba(92,130,255,0.15)" : "rgba(52,211,153,0.15)",
+                              color: p.kind === "general" ? "#5C82FF" : "#34d399",
+                            }}>
+                              {p.kind === "general" ? "Pago general" : `Venta #${p.sale_id}`}
+                            </span>
+                            {p.notes && <div style={{ fontSize: 12, color: "#6E7A98", marginTop: 4 }}>{p.notes}</div>}
+                          </div>
+                          <div style={{ fontWeight: 900, fontSize: 16, color: "#34d399", whiteSpace: "nowrap" }}>
+                            ${Number(p.amount).toFixed(2)}
+                          </div>
+                        </div>
+                      ))}
+                      {/* Total del día (solo si hay múltiples) */}
+                      {g.items.length > 1 && (
+                        <div style={{
+                          padding: "9px 14px", background: "#0D1120",
+                          display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8,
+                        }}>
+                          <span style={{ fontSize: 12, color: "#6E7A98", fontWeight: 600 }}>Total del día</span>
+                          <span style={{ fontWeight: 900, fontSize: 15, color: "#34d399" }}>${dayTotal.toFixed(2)}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          )}
         </div>
-
-        {loading ? (
-          <div style={{ color: "#6E7A98", padding: 24, textAlign: "center" }}>Cargando...</div>
-        ) : activeTab === "entregas" ? (
-          deliveries.length === 0 ? (
-            <div style={{ color: "#6E7A98", padding: 24, textAlign: "center" }}>Sin entregas registradas.</div>
-          ) : (
-            <div style={{ border: "1px solid #1F2A4A", borderRadius: 14, overflow: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr>
-                    <th style={hStyle}>Fecha</th>
-                    <th style={hStyle}>Producto</th>
-                    <th style={{ ...hStyle, textAlign: "right" }}>Cant.</th>
-                    <th style={{ ...hStyle, textAlign: "right" }}>Precio</th>
-                    <th style={{ ...hStyle, textAlign: "right" }}>Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {deliveries.map((d, i) => (
-                    <tr key={i} style={{ background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)" }}>
-                      <td style={cellStyle}>{formatArDate(d.sale_date)}</td>
-                      <td style={{ ...cellStyle, whiteSpace: "normal", maxWidth: 180 }}>
-                        <div style={{ fontWeight: 700 }}>{d.product_name}</div>
-                        {d.product_type && <div style={{ fontSize: 11, color: "#6E7A98" }}>{d.product_type}</div>}
-                        {d.notes && <div style={{ fontSize: 11, color: "#5C82FF" }}>{d.notes}</div>}
-                      </td>
-                      <td style={{ ...cellStyle, textAlign: "right" }}>{Number(d.quantity).toFixed(2)}</td>
-                      <td style={{ ...cellStyle, textAlign: "right" }}>${Number(d.unit_price).toFixed(2)}</td>
-                      <td style={{ ...cellStyle, textAlign: "right", fontWeight: 700 }}>${Number(d.subtotal).toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )
-        ) : (
-          payments.length === 0 ? (
-            <div style={{ color: "#6E7A98", padding: 24, textAlign: "center" }}>Sin pagos registrados.</div>
-          ) : (
-            <div style={{ border: "1px solid #1F2A4A", borderRadius: 14, overflow: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr>
-                    <th style={hStyle}>Fecha</th>
-                    <th style={hStyle}>Tipo</th>
-                    <th style={{ ...hStyle, textAlign: "right" }}>Monto</th>
-                    <th style={hStyle}>Notas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map((p, i) => (
-                    <tr key={p.payment_id} style={{ background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)" }}>
-                      <td style={cellStyle}>{formatArDate(p.payment_date)}</td>
-                      <td style={cellStyle}>
-                        <span style={{
-                          fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 6,
-                          background: p.kind === "general" ? "rgba(92,130,255,0.15)" : "rgba(52,211,153,0.15)",
-                          color: p.kind === "general" ? "#5C82FF" : "#34d399",
-                        }}>{p.kind === "general" ? "General" : `Venta #${p.sale_id}`}</span>
-                      </td>
-                      <td style={{ ...cellStyle, textAlign: "right", fontWeight: 700, color: "#34d399" }}>${Number(p.amount).toFixed(2)}</td>
-                      <td style={{ ...cellStyle, color: "#6E7A98", whiteSpace: "normal", maxWidth: 160 }}>{p.notes ?? "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )
-        )}
       </div>
     </div>
   );
