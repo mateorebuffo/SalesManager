@@ -1,7 +1,7 @@
 # app/main.py
 import logging
 import os
-import re
+import json
 import time
 from urllib.request import Request as UrlRequest, urlopen
 
@@ -134,20 +134,15 @@ def _fetch_dolar_blue() -> dict | None:
         return _dolar_cache["data"]
     try:
         req = UrlRequest(
-            "https://www.infodolar.com/cotizacion-dolar-provincia-cordoba.aspx",
+            "https://dolarapi.com/v1/dolares/blue",
             headers={"User-Agent": "Mozilla/5.0"},
         )
         with urlopen(req, timeout=8) as r:
-            html = r.read().decode("utf-8", errors="replace")
-        idx = html.lower().find("blue")
-        if idx != -1:
-            segment = html[idx: idx + 1000]
-            amounts = re.findall(r"\$\s*([\d.,]+)", segment)
-            if len(amounts) >= 2:
-                result = {"compra": amounts[0], "venta": amounts[1]}
-                _dolar_cache["data"] = result
-                _dolar_cache["ts"] = now
-                return result
+            data = json.loads(r.read())
+        result = {"compra": str(int(data["compra"])), "venta": str(int(data["venta"]))}
+        _dolar_cache["data"] = result
+        _dolar_cache["ts"] = now
+        return result
     except Exception:
         pass
     return _dolar_cache["data"]
