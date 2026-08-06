@@ -1220,7 +1220,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
     return header + blocks.join("\n");
   };
 
-  const buildPaymentsText = () => {
+  const buildPaymentsText = (data = paymentsData) => {
     const clientName = selectedClient?.name || "";
     const saldo = formatMoney(statement?.total_balance || 0);
 
@@ -1230,11 +1230,11 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
       `💰 Saldo total: $${saldo}\n\n` +
       `💵 Pagos a cuenta\n`;
 
-    if (!paymentsData?.length) return header + "Sin pagos.\n";
+    if (!data?.length) return header + "Sin pagos.\n";
 
-    const totalPaid = paymentsData.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+    const totalPaid = data.reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
-    const lines = paymentsData.map((p) => {
+    const lines = data.map((p) => {
       const amt = formatMoney(p.amount);
       const note = p.notes ? ` "${p.notes}"` : "";
       return `- ${formatArDate(p.payment_date)}  $${amt}${note}`;
@@ -1503,7 +1503,14 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
               <button
                 type="button"
                 title="Exportar pagos"
-                onClick={() => copyToClipboard(buildPaymentsText())}
+                onClick={async () => {
+                  let data = paymentsData;
+                  if (!data.length && selectedClient) {
+                    data = (await fetchPayments(selectedClient.id)) || [];
+                    setPaymentsData(data);
+                  }
+                  copyToClipboard(buildPaymentsText(data));
+                }}
                 style={{
                   width: 38, height: 38, borderRadius: 10,
                   border: "1px solid #1F2A4A", background: "#121A33",
