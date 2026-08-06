@@ -15,8 +15,98 @@ import {
   BottomSheet, useIsDesktop, iconBtnStyle, QtyInput,
 } from '../primitives';
 import {
-  ChevD, Plus, Receipt, X, Check, Bolt, Pkg, Cash, Transfer, Crypto, Clock,
+  ChevD, Plus, Receipt, X, Check, Bolt, Pkg, Cash, Transfer, Crypto, Clock, Calc,
 } from '../Icons';
+
+function Calculator({ theme, onClose }) {
+  const [expr, setExpr] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const result = useMemo(() => {
+    if (!expr) return '0';
+    try {
+      const cleaned = expr.replace(/×/g, '*').replace(/÷/g, '/');
+      if (!/^[\d+\-*/().% ]+$/.test(cleaned)) return 'Error';
+      // eslint-disable-next-line no-new-func
+      const r = new Function('return ' + cleaned)();
+      if (typeof r !== 'number' || !isFinite(r)) return 'Error';
+      return String(parseFloat(r.toFixed(10)));
+    } catch { return 'Error'; }
+  }, [expr]);
+
+  const press = (k) => {
+    if (k === 'AC') { setExpr(''); return; }
+    if (k === '⌫') { setExpr(e => e.slice(0, -1)); return; }
+    if (k === '=') { if (result !== 'Error') setExpr(result); return; }
+    setExpr(e => e + k);
+  };
+
+  const copy = () => {
+    navigator.clipboard.writeText(result);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  const ROWS = [
+    ['AC', '(', ')', '÷'],
+    ['7',  '8', '9', '×'],
+    ['4',  '5', '6', '-'],
+    ['1',  '2', '3', '+'],
+    ['0',  '.', '⌫', '='],
+  ];
+
+  const btnColor = (k) => {
+    if (['÷','×','-','+','='].includes(k)) return { bg: theme.brand, border: theme.brand, color: '#fff' };
+    if (k === 'AC') return { bg: theme.danger + '22', border: theme.danger + '44', color: theme.danger };
+    if (['(',')','.','⌫'].includes(k)) return { bg: theme.surface2, border: theme.border, color: theme.text };
+    return { bg: theme.surfaceSunk, border: theme.border, color: theme.text };
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+    }} onClick={onClose}>
+      <div style={{
+        background: theme.surface, borderRadius: 20, padding: 20, width: 320,
+        border: `1px solid ${theme.border}`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+      }} onClick={e => e.stopPropagation()}>
+        {/* Display */}
+        <div style={{
+          background: theme.surfaceSunk, borderRadius: 12, padding: '12px 16px',
+          marginBottom: 16, border: `1px solid ${theme.border}`,
+        }}>
+          <div style={{ fontSize: 12, color: theme.text3, minHeight: 18, textAlign: 'right', wordBreak: 'break-all', fontFamily: FONT_MONO }}>{expr || '0'}</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+            <button onClick={copy} style={{
+              background: copied ? theme.brand : 'transparent',
+              border: `1px solid ${copied ? theme.brand : theme.border}`,
+              borderRadius: 8, color: copied ? '#fff' : theme.text3,
+              fontSize: 11, padding: '4px 12px', cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              {copied ? '✓ Copiado' : 'Copiar'}
+            </button>
+            <div style={{ fontSize: 30, fontWeight: 700, color: result === 'Error' ? theme.danger : theme.text, fontFamily: FONT_MONO }}>{result}</div>
+          </div>
+        </div>
+        {/* Buttons */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+          {ROWS.flat().map(k => {
+            const { bg, border, color } = btnColor(k);
+            return (
+              <button key={k} onClick={() => press(k)} style={{
+                height: 58, borderRadius: 12, background: bg,
+                border: `1px solid ${border}`, color, cursor: 'pointer',
+                fontSize: ['÷','×'].includes(k) ? 22 : k === '⌫' ? 18 : 20,
+                fontWeight: 600, fontFamily: FONT_MONO,
+              }}>{k}</button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const ICONS_BY_PAY = { cash: Cash, transfer: Transfer, crypto: Crypto, credit: Clock };
 
@@ -35,6 +125,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
   const [parcialAmounts, setParcialAmounts] = useState({ crypto: '', cash: '', transfer: '' });
   const [saleDate, setSaleDate] = useState(() => localToday());
   const [sheet, setSheet] = useState(null);      // 'client' | 'product' | null
+  const [showCalc, setShowCalc] = useState(false);
   const [query, setQuery] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -260,6 +351,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
             />
           </div>
         </div>
+        <button style={iconBtnStyle(theme)} title="Calculadora" onClick={() => setShowCalc(true)}><Calc size={20}/></button>
         <button style={iconBtnStyle(theme)} title="Historial"><Receipt size={20}/></button>
       </div>
 
@@ -553,6 +645,7 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
           </Card>
         </div>
       </BottomSheet>
+      {showCalc && <Calculator theme={theme} onClose={() => setShowCalc(false)} />}
     </>
   );
 }

@@ -257,7 +257,7 @@ export function AppShell({ theme, screen, setScreen, currentUser, onLogout, chil
             { label: 'USDT',       data: usdt  },
           ].filter(r => r.data?.compra).map(({ label, data }) => (
             <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 10, color: theme.text3, fontWeight: 700, letterSpacing: 0.6, width: 72 }}>{label}</span>
+              <span style={{ fontSize: 10, color: theme.text3, fontWeight: 700, letterSpacing: 0.6, minWidth: 80 }}>{label}</span>
               <span style={{ fontSize: 10, color: theme.text3 }}>COMPRA <span style={{ color: theme.brand, fontWeight: 700, fontSize: 12 }}>${data.compra}</span></span>
               <span style={{ fontSize: 10, color: theme.text3 }}>VENTA <span style={{ color: theme.brand, fontWeight: 700, fontSize: 12 }}>${data.venta}</span></span>
             </div>
