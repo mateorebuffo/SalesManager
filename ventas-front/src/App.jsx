@@ -3,7 +3,7 @@ import { themes } from "./design/tokens";
 import "./design/styles.css";
 import { AppShell as NewShell } from "./design/AppShell";
 import SaleScreen from "./design/screens/SaleScreen";
-import { Cart as CartIcon } from "./design/Icons";
+import { Cart as CartIcon, Receipt, Cash } from "./design/Icons";
 
 // En producción setear VITE_API_URL en el archivo .env de Netlify/Railway
 const API = import.meta.env.VITE_API_URL ?? `http://${window.location.hostname}:8000`;
@@ -1479,11 +1479,38 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
               borderRadius: 14,
               padding: 14,
               boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
             }}
           >
-            <div style={{ color: "#6E7A98", fontSize: 12 }}>Saldo total</div>
-            <div style={{ fontWeight: 900, fontSize: 22 }}>
-              ${Number(statement.total_balance || 0).toFixed(2)}
+            <div>
+              <div style={{ color: "#6E7A98", fontSize: 12 }}>Saldo total</div>
+              <div style={{ fontWeight: 900, fontSize: 22 }}>
+                ${Number(statement.total_balance || 0).toFixed(2)}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                title="Exportar entregas"
+                onClick={() => copyToClipboard(buildDeliveriesText())}
+                style={{
+                  width: 38, height: 38, borderRadius: 10,
+                  border: "1px solid #1F2A4A", background: "#121A33",
+                  color: "#6E7A98", display: "flex", alignItems: "center",
+                  justifyContent: "center", cursor: "pointer",
+                }}
+              ><Receipt size={18} /></button>
+              <button
+                type="button"
+                title="Exportar pagos"
+                onClick={() => copyToClipboard(buildPaymentsText())}
+                style={{
+                  width: 38, height: 38, borderRadius: 10,
+                  border: "1px solid #1F2A4A", background: "#121A33",
+                  color: "#6E7A98", display: "flex", alignItems: "center",
+                  justifyContent: "center", cursor: "pointer",
+                }}
+              ><Cash size={18} /></button>
             </div>
           </div>
 
@@ -1523,20 +1550,6 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
             </button>
           </div>
 
-          {/* Exportar — visible solo cuando hay datos en la tab activa */}
-          {clientView === "deliveries" && deliveriesBySale.length > 0 && (
-            <button
-              type="button"
-              onClick={() => copyToClipboard(buildDeliveriesText())}
-              style={{
-                width: "100%", height: 44, borderRadius: 10,
-                border: "1px solid #1F2A4A",
-                background: "#0A1124", color: "#fff", fontWeight: 900, fontSize: 14, cursor: "pointer",
-              }}
-            >
-              Exportar entregas
-            </button>
-          )}
           {clientView === "payments" && (
             <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 10, boxShadow: "0 2px 12px rgba(0,0,0,0.25)" }}>
               <div style={{ fontWeight: 900, fontSize: 13, color: "#6E7A98", letterSpacing: 1, textTransform: "uppercase" }}>
@@ -1579,19 +1592,6 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                 {paySubmitting ? "Registrando..." : "Confirmar pago"}
               </button>
             </div>
-          )}
-          {clientView === "payments" && paymentsData.length > 0 && (
-            <button
-              type="button"
-              onClick={() => copyToClipboard(buildPaymentsText())}
-              style={{
-                width: "100%", height: 44, borderRadius: 10,
-                border: "1px solid #1F2A4A",
-                background: "#0A1124", color: "#fff", fontWeight: 900, fontSize: 14, cursor: "pointer",
-              }}
-            >
-              Exportar pagos
-            </button>
           )}
 
           {/* ===== Entregas ===== */}
