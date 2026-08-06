@@ -4306,7 +4306,7 @@ function UsersScreen({ pushToast, currentUser, clients = [] }) {
       } catch (e) { pushToast(e.message || "Error", "error"); }
     };
 
-    const isAdminRole = (r) => r.name === "admin";
+    const isAdminRole = (r) => r?.name === "admin";
     const permLabel = (key) => SCREEN_OPTIONS.find((s) => s.key === key)?.label ?? key;
 
     return (
