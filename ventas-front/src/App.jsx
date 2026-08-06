@@ -4490,14 +4490,15 @@ function ClientPortalScreen({ currentUser, onLogout }) {
 
   return (
     <div style={{
-      minHeight: "100dvh", background: "#0A1124", color: "#fff",
+      display: "flex", flexDirection: "column", height: "100dvh",
+      background: "#0A1124", color: "#fff",
       fontFamily: '"Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
     }}>
       <ToastHost toasts={toasts} removeToast={removeToast} />
 
-      {/* Header fijo */}
+      {/* Header — flex item, no fixed */}
       <div style={{
-        position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
+        flexShrink: 0,
         background: "#121A33", borderBottom: "1px solid #1F2A4A",
         padding: "0 16px", height: 56,
         display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -4519,8 +4520,8 @@ function ClientPortalScreen({ currentUser, onLogout }) {
         </div>
       </div>
 
-      {/* Contenido — paddingTop compensa el header fijo */}
-      <div style={{ paddingTop: 56 }}>
+      {/* Contenido scrolleable */}
+      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
         <div style={{ maxWidth: 680, margin: "0 auto", padding: "20px 14px 40px" }}>
 
           {/* Balance card */}
@@ -4569,15 +4570,16 @@ function ClientPortalScreen({ currentUser, onLogout }) {
                       {/* Cabecera del bloque */}
                       <div style={{
                         background: "linear-gradient(90deg, #1A2453, #151D3B)",
-                        padding: "10px 14px",
-                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                        padding: "12px 14px",
                         borderBottom: "1px solid #1F2A4A",
                       }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
                           <span style={{ fontSize: 14 }}>📦</span>
-                          <span style={{ fontWeight: 800, fontSize: 13, color: "#5C82FF" }}>Entrega #{g.sale_id}</span>
+                          <span style={{ fontWeight: 900, fontSize: 15, color: "#5C82FF" }}>
+                            {new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date(g.sale_date))}
+                          </span>
                         </div>
-                        <div style={{ fontSize: 12, color: "#A5B0CC" }}>{formatArDate(g.sale_date)}</div>
+                        <div style={{ fontSize: 11, color: "#6E7A98", paddingLeft: 22 }}>Entrega #{g.sale_id}</div>
                       </div>
                       {/* Ítems */}
                       {g.items.map((item, i) => (
