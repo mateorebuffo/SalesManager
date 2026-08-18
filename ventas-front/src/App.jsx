@@ -1575,11 +1575,11 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
                 <input
-                  inputMode="decimal"
+                  inputMode="numeric"
                   placeholder="Monto"
                   style={{ height: 48, fontSize: 16, borderRadius: 12, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
-                  value={payAmount}
-                  onChange={(e) => setPayAmount(e.target.value)}
+                  value={payAmount.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+                  onChange={(e) => setPayAmount(e.target.value.replace(/\D/g, ''))}
                   onKeyDown={(e) => { if (e.key === "Enter") submitGeneralPayment(); }}
                 />
                 <NotesCombo
