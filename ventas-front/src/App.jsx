@@ -833,6 +833,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
   const [payNotes, setPayNotes] = useState("");
   const [payDate, setPayDate] = useState(() => localToday());
   const [paySubmitting, setPaySubmitting] = useState(false);
+  const [payConvertUSD, setPayConvertUSD] = useState(true);
 
   // Edición inline de pagos
   const [editPaymentId, setEditPaymentId] = useState(null);
@@ -1018,10 +1019,12 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientView, selectedClient]);
 
+  const PESOS_NOTES = ["TRANSFERENCIA PESOS", "PESOS FISICO"];
+
   const submitGeneralPayment = async () => {
     if (!selectedClient) return;
 
-    const amount = Number(payAmount);
+    let amount = Number(payAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
       pushToast("Ingresá un monto válido (> 0).", "error");
       return;
@@ -1029,6 +1032,20 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
 
     setPaySubmitting(true);
     setError("");
+
+    if (PESOS_NOTES.includes(payNotes.trim()) && payConvertUSD) {
+      try {
+        const r = await apiFetch(`${API}/dolar-blue`);
+        const d = await r.json();
+        const venta = parseFloat(d.venta);
+        if (!Number.isFinite(venta) || venta <= 0) throw new Error("No se pudo obtener el dólar blue");
+        amount = amount / venta;
+      } catch (e) {
+        pushToast(e.message || "Error obteniendo dólar blue", "error");
+        setPaySubmitting(false);
+        return;
+      }
+    }
 
     try {
       const res = await apiFetch(`${API}/clients/${selectedClient.id}/payments`, {
@@ -1569,11 +1586,11 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                   placeholder="Notas (opcional)"
                   inputStyle={{ width: "100%", height: 48, fontSize: 16, borderRadius: 12, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
                   value={payNotes}
-                  onChange={setPayNotes}
+                  onChange={(v) => { setPayNotes(v); if (PESOS_NOTES.includes(v)) setPayConvertUSD(true); }}
                   onKeyDown={(e) => { if (e.key === "Enter") submitGeneralPayment(); }}
                 />
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "#6E7A98" }}>Fecha</span>
                 <input
                   type="date"
@@ -1583,6 +1600,17 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
                   onChange={(e) => setPayDate(e.target.value)}
                   style={{ height: 40, fontSize: 14, borderRadius: 10, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: "0 10px", outline: "none", cursor: "pointer", fontFamily: "inherit" }}
                 />
+                {PESOS_NOTES.includes(payNotes.trim()) && (
+                  <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", userSelect: "none" }}>
+                    <input
+                      type="checkbox"
+                      checked={payConvertUSD}
+                      onChange={(e) => setPayConvertUSD(e.target.checked)}
+                      style={{ width: 16, height: 16, accentColor: "#5C82FF", cursor: "pointer" }}
+                    />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#A5B0CC" }}>Convertir a USD</span>
+                  </label>
+                )}
               </div>
               <button
                 type="button"
