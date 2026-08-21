@@ -1056,7 +1056,9 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
           payment_date: payDate === localToday()
             ? new Date().toISOString()
             : new Date(payDate + 'T12:00:00').toISOString(),
-          notes: payNotes?.trim() ? payNotes.trim() : null,
+          notes: (PESOS_NOTES.includes(payNotes.trim()) && payConvertUSD)
+            ? `${payNotes.trim()} = $${payAmount.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`
+            : (payNotes?.trim() || null),
         }),
       });
 
