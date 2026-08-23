@@ -3050,8 +3050,8 @@ function StockScreen({ products, pushToast }) {
 
   return (
     <div style={{ display: "grid", gap: 12, padding: '16px 16px 0' }}>
-      {/* Tabs */}
-      <div style={{ display: "flex", gap: 8 }}>
+      {/* Tabs — se ocultan cuando el form está abierto */}
+      {!showForm && <div style={{ display: "flex", gap: 8 }}>
         {[["current", "Stock actual"], ["entries", "Ingresos"]].map(([key, label]) => (
           <button
             key={key}
@@ -3067,7 +3067,7 @@ function StockScreen({ products, pushToast }) {
             {label}
           </button>
         ))}
-      </div>
+      </div>}
 
       {/* Botón Nuevo ingreso (siempre visible) */}
       {!showForm && (
@@ -3222,9 +3222,8 @@ function StockScreen({ products, pushToast }) {
         </div>
       )}
 
-      {loading ? (
-        <div style={{ color: "#6E7A98" }}>Cargando...</div>
-      ) : tab === "current" ? (
+      {!showForm && loading && <div style={{ color: "#6E7A98" }}>Cargando...</div>}
+      {!showForm && !loading && (tab === "current" ? (
         currentStock.length === 0 ? (
           <div style={{ color: "#6E7A98" }}>Sin datos de stock. Cargá un ingreso primero.</div>
         ) : (
@@ -3351,7 +3350,7 @@ function StockScreen({ products, pushToast }) {
             </div>
           ))
         )
-      )}
+      ))}
     </div>
   );
 }
