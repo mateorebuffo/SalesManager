@@ -2876,9 +2876,16 @@ function StockScreen({ products, pushToast }) {
   const [formProductQuery, setFormProductQuery] = useState("");
   const [formQty, setFormQty] = useState("");
   const [formSubmitting, setFormSubmitting] = useState(false);
+  const [showFormDate, setShowFormDate] = useState(false);
+
+  // Quick-add inline (tab Stock actual)
+  const [quickAddId, setQuickAddId] = useState(null);
+  const [quickAddQty, setQuickAddQty] = useState("");
+  const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
 
   const formProductRef = useRef(null);
   const formQtyRef = useRef(null);
+  const quickAddQtyRef = useRef(null);
 
   const loadCurrentStock = async () => {
     setLoading(true);
@@ -2922,6 +2929,7 @@ function StockScreen({ products, pushToast }) {
     setFormSelectedProduct(null);
     setFormProductQuery("");
     setFormQty("");
+    setShowFormDate(false);
     setShowForm(true);
   };
 
@@ -2976,6 +2984,25 @@ function StockScreen({ products, pushToast }) {
     } catch {
       pushToast("Error al eliminar", "error");
     }
+  };
+
+  const submitQuickAdd = async (product) => {
+    const q = Number(quickAddQty);
+    if (!Number.isFinite(q) || q <= 0) { pushToast("Ingresá una cantidad válida", "error"); return; }
+    setQuickAddSubmitting(true);
+    try {
+      const res = await apiFetch(`${API}/stock/entries`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entry_date: new Date().toISOString(), items: [{ product_id: product.product_id, quantity: q }] }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Error");
+      pushToast(`+${q} de ${product.product_name} ✅`, "success");
+      setQuickAddId(null);
+      setQuickAddQty("");
+      loadCurrentStock();
+    } catch (e) { pushToast(e.message || "Error", "error"); }
+    finally { setQuickAddSubmitting(false); }
   };
 
   const submitForm = async () => {
@@ -3042,8 +3069,8 @@ function StockScreen({ products, pushToast }) {
         ))}
       </div>
 
-      {/* Botón Nuevo ingreso (tab ingresos) */}
-      {tab === "entries" && !showForm && (
+      {/* Botón Nuevo ingreso (siempre visible) */}
+      {!showForm && (
         <button
           type="button"
           onClick={openNewForm}
@@ -3064,13 +3091,17 @@ function StockScreen({ products, pushToast }) {
           </div>
 
           <div>
-            <label style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#6E7A98" }}>Fecha</label>
-            <input
-              type="datetime-local"
-              value={formDate}
-              onChange={(e) => setFormDate(e.target.value)}
-              style={inputStyle}
-            />
+            {showFormDate ? (
+              <>
+                <label style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#6E7A98" }}>Fecha</label>
+                <input type="datetime-local" value={formDate} onChange={(e) => setFormDate(e.target.value)} style={inputStyle} />
+              </>
+            ) : (
+              <button type="button" onClick={() => setShowFormDate(true)}
+                style={{ background: "none", border: "none", color: "#5C82FF", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 0 }}>
+                📅 Cambiar fecha (ahora por defecto)
+              </button>
+            )}
           </div>
 
           <div>
@@ -3217,18 +3248,45 @@ function StockScreen({ products, pushToast }) {
                 border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 6, boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
               }}
             >
-              <div style={{ fontWeight: 900, fontSize: 15 }}>{s.product_name}</div>
-              <div style={{ fontSize: 12, color: "#6E7A98" }}>{s.product_type}</div>
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 14, color: "#A5B0CC", marginTop: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: 15 }}>{s.product_name}</div>
+                  <div style={{ fontSize: 12, color: "#6E7A98" }}>{s.product_type}</div>
+                </div>
+                {quickAddId !== s.product_id && (
+                  <button type="button"
+                    onClick={() => { setQuickAddId(s.product_id); setQuickAddQty(""); setTimeout(() => quickAddQtyRef.current?.focus(), 0); }}
+                    style={{ height: 34, width: 34, borderRadius: 9, border: "1px solid #2B3960", background: "#121A33", color: "#5C82FF", fontSize: 22, fontWeight: 300, flexShrink: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    +
+                  </button>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 14, color: "#A5B0CC", marginTop: 2 }}>
                 <span>Ingresado: <b style={{ color: "#fff" }}>{fmtQty(s.stock_in)}</b></span>
                 <span>Vendido: <b style={{ color: "#fff" }}>{fmtQty(s.stock_out)}</b></span>
-                <span>
-                  Stock actual:{" "}
-                  <b style={{ color: Number(s.current_stock) >= 0 ? "#34d399" : "#f87171" }}>
-                    {fmtQty(s.current_stock)}
-                  </b>
-                </span>
+                <span>Stock actual: <b style={{ color: Number(s.current_stock) >= 0 ? "#34d399" : "#f87171" }}>{fmtQty(s.current_stock)}</b></span>
               </div>
+              {quickAddId === s.product_id && (
+                <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                  <input
+                    ref={quickAddQtyRef}
+                    inputMode="decimal"
+                    placeholder="Cantidad a ingresar"
+                    value={quickAddQty}
+                    onChange={(e) => setQuickAddQty(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") submitQuickAdd(s); if (e.key === "Escape") setQuickAddId(null); }}
+                    style={{ flex: 1, height: 40, fontSize: 15, borderRadius: 10, border: "1px solid #5C82FF", background: "#121A33", color: "#fff", padding: "0 12px", outline: "none", boxSizing: "border-box" }}
+                  />
+                  <button type="button" disabled={quickAddSubmitting} onClick={() => submitQuickAdd(s)}
+                    style={{ height: 40, padding: "0 16px", borderRadius: 10, border: "none", background: "#5C82FF", color: "#fff", fontWeight: 900, fontSize: 14, cursor: "pointer", flexShrink: 0 }}>
+                    {quickAddSubmitting ? "..." : "Agregar"}
+                  </button>
+                  <button type="button" onClick={() => setQuickAddId(null)}
+                    style={{ height: 40, width: 40, borderRadius: 10, border: "1px solid #1F2A4A", background: "#121A33", color: "#6E7A98", fontWeight: 900, cursor: "pointer", flexShrink: 0 }}>
+                    ✕
+                  </button>
+                </div>
+              )}
             </div>
           ))}
           </>
