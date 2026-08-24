@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from ..database import get_db
-from ..models import Client
-from ..schemas import ClientCreate, ClientOut, ClientUpdate, SupplierPaymentCreate, SupplierPaymentOut, SupplierPurchaseRow
+from ..models import Client, ClientNote
+from ..schemas import ClientCreate, ClientOut, ClientUpdate, SupplierPaymentCreate, SupplierPaymentOut, SupplierPurchaseRow, ClientNoteCreate, ClientNoteUpdate, ClientNoteOut
 
 from sqlalchemy import func
 from decimal import Decimal
@@ -478,6 +478,42 @@ def delete_supplier_payment(client_id: int, payment_id: int, db: Session = Depen
     if not sp:
         raise HTTPException(status_code=404, detail="Pago no existe.")
     db.delete(sp)
+    db.commit()
+
+
+@router.get("/{client_id}/notes", response_model=list[ClientNoteOut])
+def list_notes(client_id: int, db: Session = Depends(get_db)):
+    return db.query(ClientNote).filter(ClientNote.client_id == client_id).order_by(ClientNote.created_at.desc()).all()
+
+
+@router.post("/{client_id}/notes", response_model=ClientNoteOut, status_code=201)
+def create_note(client_id: int, payload: ClientNoteCreate, db: Session = Depends(get_db)):
+    if not db.query(Client).filter(Client.id == client_id).first():
+        raise HTTPException(status_code=404, detail="Cliente no existe.")
+    note = ClientNote(client_id=client_id, content=payload.content)
+    db.add(note)
+    db.commit()
+    db.refresh(note)
+    return note
+
+
+@router.put("/{client_id}/notes/{note_id}", response_model=ClientNoteOut)
+def update_note(client_id: int, note_id: int, payload: ClientNoteUpdate, db: Session = Depends(get_db)):
+    note = db.query(ClientNote).filter(ClientNote.id == note_id, ClientNote.client_id == client_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Nota no existe.")
+    note.content = payload.content
+    db.commit()
+    db.refresh(note)
+    return note
+
+
+@router.delete("/{client_id}/notes/{note_id}", status_code=204)
+def delete_note(client_id: int, note_id: int, db: Session = Depends(get_db)):
+    note = db.query(ClientNote).filter(ClientNote.id == note_id, ClientNote.client_id == client_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Nota no existe.")
+    db.delete(note)
     db.commit()
 
 

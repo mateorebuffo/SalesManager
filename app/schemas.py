@@ -470,6 +470,20 @@ class RoleUpdate(BaseModel):
 
 # ── Notificaciones ────────────────────────────────────────────────────────────
 
+class ClientNoteCreate(BaseModel):
+    content: str = Field(min_length=1, max_length=5000)
+
+class ClientNoteUpdate(BaseModel):
+    content: str = Field(min_length=1, max_length=5000)
+
+class ClientNoteOut(BaseModel):
+    id: int
+    client_id: int
+    content: str
+    created_at: datetime
+    updated_at: datetime
+    model_config = {"from_attributes": True}
+
 class NotificationOut(BaseModel):
     id: int
     triggered_by_username: str

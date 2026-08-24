@@ -141,6 +141,7 @@ function SearchDropdown({
   maxResults = 12,
   onAdd,
   onEdit,
+  onNotes,
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
@@ -211,22 +212,37 @@ function SearchDropdown({
               </button>
             )}
           </div>
-          <button
-            type="button"
-            style={{
-              height: 44, minWidth: 110, borderRadius: 12, flexShrink: 0,
-              border: "1px solid #2B3960", background: "#0A1124",
-              color: "#fff", fontWeight: 800, cursor: "pointer",
-            }}
-            onClick={() => {
-              setSelected(null);
-              setQuery("");
-              setOpen(true);
-              setTimeout(() => inputRef?.current?.focus(), 0);
-            }}
-          >
-            Cambiar
-          </button>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+            {onNotes && (
+              <button
+                type="button"
+                style={{
+                  height: 44, paddingInline: 16, borderRadius: 12,
+                  border: "1px solid rgba(92,130,255,0.5)", background: "rgba(92,130,255,0.12)",
+                  color: "#5C82FF", fontWeight: 800, cursor: "pointer",
+                }}
+                onClick={onNotes}
+              >
+                Notas
+              </button>
+            )}
+            <button
+              type="button"
+              style={{
+                height: 44, minWidth: 110, borderRadius: 12,
+                border: "1px solid #2B3960", background: "#0A1124",
+                color: "#fff", fontWeight: 800, cursor: "pointer",
+              }}
+              onClick={() => {
+                setSelected(null);
+                setQuery("");
+                setOpen(true);
+                setTimeout(() => inputRef?.current?.focus(), 0);
+              }}
+            >
+              Cambiar
+            </button>
+          </div>
         </div>
       ) : (
         <div
@@ -803,6 +819,162 @@ function EditSaleModal({ saleId, products, pushToast, onSaved, onClose }) {
   );
 }
 
+function ClientNotesPanel({ clientId, onClose }) {
+  const [notes, setNotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const [newContent, setNewContent] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editContent, setEditContent] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await apiFetch(`${API}/clients/${clientId}/notes`);
+      if (res.ok) setNotes(await res.json());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, [clientId]);
+
+  const saveNew = async () => {
+    const content = newContent.trim();
+    if (!content) return;
+    setSaving(true);
+    try {
+      const res = await apiFetch(`${API}/clients/${clientId}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (res.ok) {
+        setNewContent("");
+        setCreating(false);
+        await load();
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveEdit = async (noteId) => {
+    const content = editContent.trim();
+    if (!content) return;
+    setSaving(true);
+    try {
+      const res = await apiFetch(`${API}/clients/${clientId}/notes/${noteId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (res.ok) {
+        setEditingId(null);
+        await load();
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const fmt = (iso) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  };
+
+  const PREVIEW_LEN = 120;
+
+  return (
+    <div style={{ border: "1px solid #1F2A4A", borderRadius: 14, background: "#0A1124", padding: 16, display: "grid", gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontWeight: 800, fontSize: 16 }}>Notas</span>
+        <button type="button" onClick={onClose} style={{ background: "none", border: "none", color: "#6E7A98", cursor: "pointer", fontSize: 20, lineHeight: 1 }}>×</button>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => { setCreating((v) => !v); setNewContent(""); }}
+        style={{ height: 40, borderRadius: 10, border: "1px solid #5C82FF", background: "rgba(92,130,255,0.12)", color: "#5C82FF", fontWeight: 700, cursor: "pointer" }}
+      >
+        {creating ? "Cancelar" : "+ Crear nueva nota"}
+      </button>
+
+      {creating && (
+        <div style={{ display: "grid", gap: 8 }}>
+          <textarea
+            autoFocus
+            value={newContent}
+            onChange={(e) => setNewContent(e.target.value)}
+            placeholder="Escribí la nota aquí..."
+            style={{ width: "100%", minHeight: 140, borderRadius: 10, border: "1px solid #1F2A4A", background: "#121A33", color: "#fff", padding: 12, fontSize: 15, resize: "vertical", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
+          />
+          <button
+            type="button"
+            onClick={saveNew}
+            disabled={saving || !newContent.trim()}
+            style={{ height: 40, borderRadius: 10, border: "none", background: "#5C82FF", color: "#fff", fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}
+          >
+            {saving ? "Guardando..." : "Guardar nota"}
+          </button>
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ color: "#6E7A98", textAlign: "center" }}>Cargando...</div>
+      ) : notes.length === 0 ? (
+        <div style={{ color: "#6E7A98", textAlign: "center" }}>No hay notas.</div>
+      ) : (
+        <div style={{ display: "grid", gap: 8 }}>
+          {notes.map((n) => {
+            const isExpanded = expandedId === n.id;
+            const isEditing = editingId === n.id;
+            const preview = n.content.length > PREVIEW_LEN ? n.content.slice(0, PREVIEW_LEN) + "…" : n.content;
+            return (
+              <div key={n.id} style={{ border: "1px solid #1F2A4A", borderRadius: 10, background: "#121A33", padding: 12, display: "grid", gap: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 12, color: "#6E7A98" }}>{fmt(n.updated_at)}</span>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {!isEditing && (
+                      <button type="button" onClick={() => { setEditingId(n.id); setEditContent(n.content); setExpandedId(n.id); }} style={{ background: "none", border: "none", color: "#5C82FF", cursor: "pointer", fontSize: 13, padding: "2px 6px", borderRadius: 6, border: "1px solid rgba(92,130,255,0.4)" }}>Editar</button>
+                    )}
+                    <button type="button" onClick={() => setExpandedId(isExpanded ? null : n.id)} style={{ background: "none", border: "none", color: "#6E7A98", cursor: "pointer", fontSize: 13, padding: "2px 6px", borderRadius: 6, border: "1px solid #1F2A4A" }}>
+                      {isExpanded ? "Minimizar" : "Ver más"}
+                    </button>
+                  </div>
+                </div>
+
+                {isEditing ? (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <textarea
+                      autoFocus
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      style={{ width: "100%", minHeight: 120, borderRadius: 8, border: "1px solid #1F2A4A", background: "#0A1124", color: "#fff", padding: 10, fontSize: 14, resize: "vertical", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
+                    />
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button type="button" onClick={() => saveEdit(n.id)} disabled={saving} style={{ flex: 1, height: 36, borderRadius: 8, border: "none", background: "#5C82FF", color: "#fff", fontWeight: 700, cursor: saving ? "not-allowed" : "pointer" }}>
+                        {saving ? "Guardando..." : "Guardar"}
+                      </button>
+                      <button type="button" onClick={() => setEditingId(null)} style={{ flex: 1, height: 36, borderRadius: 8, border: "1px solid #2B3960", background: "none", color: "#fff", cursor: "pointer" }}>Cancelar</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ color: "#C8D0E8", fontSize: 14, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                    {isExpanded ? n.content : preview}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ClientScreen({ clients, products, priceLists, pushToast, onClientCreated }) {
   const [clientSection, setClientSection] = useState("clients"); // "clients" | "debtors"
 
@@ -852,6 +1024,9 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
   const [editPriceListId, setEditPriceListId] = useState("");
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [deactivateSubmitting, setDeactivateSubmitting] = useState(false);
+
+  // Panel de notas
+  const [showNotes, setShowNotes] = useState(false);
 
   // Nuevo cliente (formulario inline)
   const [showNewClient, setShowNewClient] = useState(false);
@@ -951,6 +1126,7 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
 
         setClientView("deliveries");
         setShowEditClient(false);
+        setShowNotes(false);
         return;
       }
 
@@ -1322,7 +1498,12 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
         setSelected={(c) => setSelectedClient(c ? { id: c.id, name: c.name } : null)}
         onAdd={() => setShowNewClient((v) => !v)}
         onEdit={selectedClient ? () => (showEditClient ? setShowEditClient(false) : openEditClient()) : undefined}
+        onNotes={selectedClient ? () => setShowNotes((v) => !v) : undefined}
       />
+
+      {showNotes && selectedClient && (
+        <ClientNotesPanel clientId={selectedClient.id} onClose={() => setShowNotes(false)} />
+      )}
 
       {showNewClient && (
         <div

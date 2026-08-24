@@ -16,6 +16,15 @@ class Client(Base):
     active = Column(Boolean, nullable=False, server_default="true")
     price_list = relationship("PriceList")
 
+class ClientNote(Base):
+    __tablename__ = "client_notes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(Integer, ForeignKey("clients.id", ondelete="CASCADE"), nullable=False, index=True)
+    content = Column(String(5000), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
 class Product(Base):
     __tablename__ = "products"
     __table_args__ = (

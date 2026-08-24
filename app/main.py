@@ -13,7 +13,7 @@ from slowapi.util import get_remote_address
 
 from .auth import get_current_user, hash_password
 from .database import engine, SessionLocal
-from .models import Base, Role, User, SupplierPayment, Notification  # noqa: F401 — ensures table is registered
+from .models import Base, Role, User, SupplierPayment, Notification, ClientNote  # noqa: F401 — ensures table is registered
 from .routers.auth import router as auth_router
 from .routers.clients import router as clients_router
 from .routers.notifications import router as notifications_router
