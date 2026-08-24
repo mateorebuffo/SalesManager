@@ -3677,6 +3677,7 @@ function SuppliersScreen({ suppliers, allClients = [], products = [], pushToast,
 
   // Editar proveedor
   const [showEditSupplier, setShowEditSupplier] = useState(false);
+  const [showSupplierNotes, setShowSupplierNotes] = useState(false);
   const [editSName, setEditSName] = useState("");
   const [editSPhone, setEditSPhone] = useState("");
   const [editSSubmitting, setEditSSubmitting] = useState(false);
@@ -3832,6 +3833,7 @@ function SuppliersScreen({ suppliers, allClients = [], products = [], pushToast,
       pushToast("Proveedor desactivado", "info");
       setSelectedSupplier(null);
       setShowEditSupplier(false);
+      setShowSupplierNotes(false);
       setSupplierQuery("");
       onSupplierCreated?.();
     } catch (e) { pushToast(e.message || "Error", "error"); }
@@ -3962,10 +3964,15 @@ function SuppliersScreen({ suppliers, allClients = [], products = [], pushToast,
         query={supplierQuery}
         setQuery={setSupplierQuery}
         selected={selectedSupplier}
-        setSelected={c => { setSelectedSupplier(c ? { id: c.id, name: c.name } : null); setStatement(null); }}
+        setSelected={c => { setSelectedSupplier(c ? { id: c.id, name: c.name } : null); setStatement(null); setShowSupplierNotes(false); }}
         onAdd={() => setShowNewSupplier(v => !v)}
         onEdit={selectedSupplier ? () => (showEditSupplier ? setShowEditSupplier(false) : openEditSupplier()) : undefined}
+        onNotes={selectedSupplier ? () => setShowSupplierNotes(v => !v) : undefined}
       />
+
+      {showSupplierNotes && selectedSupplier && (
+        <ClientNotesPanel clientId={selectedSupplier.id} onClose={() => setShowSupplierNotes(false)} />
+      )}
 
       {showNewSupplier && (
         <div style={{ border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14, padding: 14, display: "grid", gap: 10, marginBottom: 4 }}>
