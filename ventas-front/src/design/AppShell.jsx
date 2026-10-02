@@ -33,6 +33,21 @@ function Calculator({ theme, onClose }) {
     setExpr(e => e + k);
   };
 
+  // Teclado físico (PC)
+  useEffect(() => {
+    const MAP = { '*': '×', '/': '÷', ',': '.', Enter: '=', '=': '=', Backspace: '⌫', Delete: 'AC' };
+    const onKey = (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === 'Escape') { onClose(); return; }
+      const k = MAP[e.key] ?? (/^[\d+\-().]$/.test(e.key) ? e.key : null);
+      if (!k) return;
+      e.preventDefault(); // evita que Enter re-clickee el botón enfocado o que escriba en inputs de atrás
+      press(k);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [result, onClose]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const copy = () => {
     navigator.clipboard.writeText(result);
     setCopied(true);
