@@ -51,6 +51,8 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
 
   // Resolve unit price using price lists (same logic as legacy NewSaleScreen)
   const priceFor = (p) => {
+    // Compra a proveedor: precio de costo
+    if (saleType === 'purchase' && p?.cost_price != null) return Number(p.cost_price);
     const prices = p?.prices || [];
     if (client) {
       const match = prices.find(pr => pr.price_list_id === client.price_list_id);
@@ -61,6 +63,11 @@ export default function SaleScreen({ theme, clients = [], products = [], pushToa
     if (prices.length > 0) return Number(prices[0].price);
     return Number(p?.cost_price ?? 0);
   };
+
+  // Al alternar Compra/Venta, recalcular precios de lo ya cargado
+  useEffect(() => {
+    setCart(c => c.map(x => ({ ...x, price: String(priceFor(products.find(p => p.id === x.productId))) })));
+  }, [saleType]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const linePrice = (l) => {
     const n = Number(l.price);
