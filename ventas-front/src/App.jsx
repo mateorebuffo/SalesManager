@@ -1,8 +1,9 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
-import { themes } from "./design/tokens";
+import { themes, PAY_NOTE_PRESETS, PESOS_NOTES } from "./design/tokens";
 import "./design/styles.css";
 import { AppShell as NewShell } from "./design/AppShell";
 import SaleScreen from "./design/screens/SaleScreen";
+import PaymentScreen from "./design/screens/PaymentScreen";
 import { Cart as CartIcon, Receipt, Cash, Edit as EditIcon } from "./design/Icons";
 
 // En producción setear VITE_API_URL en el archivo .env de Netlify/Railway
@@ -376,13 +377,6 @@ function formatArDate(iso) {
     minute: "2-digit",
   }).format(d);
 }
-
-const PAY_NOTE_PRESETS = [
-  "USD FISICO",
-  "USDT / CRIPTO",
-  "TRANSFERENCIA PESOS",
-  "PESOS FISICO",
-];
 
 function NotesCombo({ value, onChange, onKeyDown, placeholder, inputStyle }) {
   const [open, setOpen] = useState(false);
@@ -1194,8 +1188,6 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientView, selectedClient]);
-
-  const PESOS_NOTES = ["TRANSFERENCIA PESOS", "PESOS FISICO"];
 
   const submitGeneralPayment = async () => {
     if (!selectedClient) return;
@@ -2164,19 +2156,50 @@ function ClientScreen({ clients, products, priceLists, pushToast, onClientCreate
 }
 
 /** Pantalla: Nueva venta (POS) */
-function NewSaleScreen({ clients, products, pushToast }) {
-  // Wrapper around the new design system SaleScreen.
-  // Legacy pushToast is (message, type, ms); the new SaleScreen calls
+function NewSaleScreen({ clients, products, pushToast, currentUser }) {
+  // Wrapper around the new design system SaleScreen / PaymentScreen.
+  // Legacy pushToast is (message, type, ms); the new screens call
   // pushToast(type, message). Adapt here so both signatures work.
+  const [mode, setMode] = useState("sale"); // 'sale' | 'payment'
+  const theme = themes.dark;
+  const toast = (type, msg) => pushToast(msg ?? type, msg ? type : "info");
+  const payable = clients.filter(c => canSee(currentUser, c.is_supplier ? "suppliers" : "client"));
+
+  const segBtn = (key, label) => (
+    <button onClick={() => setMode(key)} style={{
+      flex: 1, height: 38, borderRadius: 8, border: "none", cursor: "pointer",
+      background: mode === key ? theme.brand : "transparent",
+      color: mode === key ? "#fff" : theme.text3,
+      fontWeight: 700, fontSize: 15, fontFamily: "inherit", transition: "all .15s",
+    }}>{label}</button>
+  );
+
   return (
-    <SaleScreen
-      theme={themes.dark}
-      clients={clients}
-      products={products}
-      pushToast={(type, msg) => pushToast(msg ?? type, msg ? type : "info")}
-      apiBase={API}
-      apiFetch={apiFetch}
-    />
+    <>
+      {payable.length > 0 && (
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: "12px 16px 0" }}>
+          <div style={{
+            display: "flex", gap: 4, background: theme.surfaceSunk,
+            borderRadius: 12, padding: 4, border: `1px solid ${theme.border}`,
+          }}>
+            {segBtn("sale", "Venta")}
+            {segBtn("payment", "Cobro")}
+          </div>
+        </div>
+      )}
+      {mode === "payment" && payable.length > 0 ? (
+        <PaymentScreen theme={theme} clients={payable} pushToast={toast} apiBase={API} apiFetch={apiFetch} />
+      ) : (
+        <SaleScreen
+          theme={theme}
+          clients={clients}
+          products={products}
+          pushToast={toast}
+          apiBase={API}
+          apiFetch={apiFetch}
+        />
+      )}
+    </>
   );
 }
 
@@ -5245,7 +5268,7 @@ function AppShell({ onLogout, currentUser }) {
         onBellClick={openNotifPanel}
       >
         {screen === "sale" ? (
-          <NewSaleScreen clients={clients} products={products} pushToast={pushToast} />
+          <NewSaleScreen clients={clients} products={products} pushToast={pushToast} currentUser={currentUser} />
         ) : screen === "client" ? (
           <ClientScreen
             clients={clients.filter(c => !c.is_supplier)} products={products} priceLists={priceLists}

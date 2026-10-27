@@ -87,3 +87,13 @@ export const PAYMENT_METHODS = [
   { id: 'cash',     label: 'Efectivo'        },
   { id: 'transfer', label: 'Transferencia'   },
 ];
+
+// Métodos de los pagos sueltos (se guardan como nota del pago).
+export const PAY_NOTE_PRESETS = [
+  'USD FISICO',
+  'USDT / CRIPTO',
+  'TRANSFERENCIA PESOS',
+  'PESOS FISICO',
+];
+// Los que se pueden convertir a USD con el dólar blue.
+export const PESOS_NOTES = ['TRANSFERENCIA PESOS', 'PESOS FISICO'];
