@@ -2204,8 +2204,8 @@ function NewSaleScreen({ clients, products, pushToast, currentUser }) {
 }
 
 /** Pantalla: Productos */
-function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onPriceListCreated }) {
-  const [productsTab, setProductsTab] = useState("products"); // "products" | "stock"
+function ProductsScreen({ products, clients, priceLists, pushToast, onProductCreated, onPriceListCreated }) {
+  const [productsTab, setProductsTab] = useState("products"); // "products" | "stock" | "sold"
 
   // --- Crear ---
   const [showForm, setShowForm] = useState(false);
@@ -2502,10 +2502,13 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
       <div style={{ display: "flex", gap: 8 }}>
         <button style={tabBtnStyle(productsTab === "products")} onClick={() => setProductsTab("products")}>Productos</button>
         <button style={tabBtnStyle(productsTab === "stock")} onClick={() => setProductsTab("stock")}>Stock</button>
+        <button style={tabBtnStyle(productsTab === "sold")} onClick={() => setProductsTab("sold")}>Vendidos</button>
       </div>
 
       {productsTab === "stock" ? (
         <StockScreen products={products} pushToast={pushToast} />
+      ) : productsTab === "sold" ? (
+        <ProductSalesTab clients={clients} pushToast={pushToast} />
       ) : (<>
       {showForm && (
         <div
@@ -3058,6 +3061,113 @@ function ProductsScreen({ products, priceLists, pushToast, onProductCreated, onP
         )}
       </div>
       </>)}
+    </div>
+  );
+}
+
+/** Tab: cantidades vendidas por producto / categoría */
+function ProductSalesTab({ clients, pushToast }) {
+  const [groupBy, setGroupBy] = useState("product"); // "product" | "type"
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [clientQuery, setClientQuery] = useState("");
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const clientRef = useRef(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams({ group_by: groupBy });
+    if (dateFrom) params.set("date_from", dateFrom);
+    if (dateTo) params.set("date_to", dateTo);
+    if (selectedClient) params.set("client_id", selectedClient.id);
+    let cancelled = false;
+    setLoading(true);
+    apiFetch(`${API}/products/sales-summary?${params}`)
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then((data) => { if (!cancelled) setRows(data); })
+      .catch(() => { if (!cancelled) pushToast("Error cargando ventas", "error"); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupBy, dateFrom, dateTo, selectedClient]);
+
+  const total = rows.reduce((acc, r) => acc + r.quantity, 0);
+  const totalAmount = rows.reduce((acc, r) => acc + r.amount, 0);
+  const fmtQty = (n) => Number(n).toLocaleString("es-AR", { maximumFractionDigits: 3 });
+  const fmtMoney = (n) => `$${Number(n).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const segStyle = (active) => ({
+    flex: 1, height: 36, borderRadius: 10, cursor: "pointer",
+    border: active ? "1px solid #5C82FF" : "1px solid #1F2A4A",
+    background: active ? "#1A2453" : "#0A1124",
+    color: active ? "#5C82FF" : "#6E7A98",
+    fontWeight: 800, fontSize: 13, fontFamily: "inherit",
+  });
+  const dateStyle = {
+    width: "100%", height: 44, fontSize: 15, borderRadius: 12,
+    border: "1px solid #1F2A4A", background: "#121A33", color: "#fff",
+    padding: "0 10px", outline: "none", boxSizing: "border-box", colorScheme: "dark",
+  };
+
+  return (
+    <div style={{ display: "grid", gap: 10 }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button style={segStyle(groupBy === "product")} onClick={() => setGroupBy("product")}>Por producto</button>
+        <button style={segStyle(groupBy === "type")} onClick={() => setGroupBy("type")}>Por categoría</button>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 8 }}>
+        <label style={{ display: "grid", gap: 4, color: "#6E7A98", fontSize: 12, fontWeight: 700 }}>
+          Desde
+          <input type="date" style={dateStyle} value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+        </label>
+        <label style={{ display: "grid", gap: 4, color: "#6E7A98", fontSize: 12, fontWeight: 700 }}>
+          Hasta
+          <input type="date" style={dateStyle} value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+        </label>
+      </div>
+
+      <SearchDropdown
+        inputRef={clientRef}
+        label="Cliente (opcional)"
+        placeholder="Todos los clientes"
+        items={clients}
+        getKey={(c) => c.id}
+        getLabel={(c) => c.name}
+        query={clientQuery}
+        setQuery={setClientQuery}
+        selected={selectedClient}
+        setSelected={(c) => setSelectedClient(c ? { id: c.id, name: c.name } : null)}
+      />
+
+      <div style={{ display: "flex", justifyContent: "space-between", color: "#A5B0CC", fontSize: 14 }}>
+        <span>{loading ? "Cargando..." : `${rows.length} ${groupBy === "type" ? "categorías" : "productos"}`}</span>
+        <span style={{ fontWeight: 900, color: "#fff" }}>Total: {fmtQty(total)} u · {fmtMoney(totalAmount)}</span>
+      </div>
+
+      {!loading && rows.length === 0 ? (
+        <div style={{ color: "#6E7A98" }}>Sin ventas en ese período.</div>
+      ) : (
+        rows.map((r) => (
+          <div
+            key={groupBy === "type" ? r.type : r.product_id}
+            style={{
+              border: "1px solid #1F2A4A", background: "#0A1124", borderRadius: 14,
+              padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 900 }}>{groupBy === "type" ? r.type : r.name}</div>
+              {groupBy === "product" && <div style={{ color: "#6E7A98", fontSize: 13 }}>{r.type}</div>}
+            </div>
+            <div style={{ textAlign: "right", flexShrink: 0 }}>
+              <div style={{ fontWeight: 900, fontSize: 18 }}>{fmtQty(r.quantity)} u</div>
+              <div style={{ color: "#A5B0CC", fontSize: 13, fontWeight: 700 }}>{fmtMoney(r.amount)}</div>
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 }
@@ -5286,6 +5396,7 @@ function AppShell({ onLogout, currentUser }) {
         ) : (
           <ProductsScreen
             products={products} priceLists={priceLists}
+            clients={clients.filter(c => !c.is_supplier)}
             pushToast={pushToast}
             onProductCreated={refreshProducts}
             onPriceListCreated={refreshPriceLists}

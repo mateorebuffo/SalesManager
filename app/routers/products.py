@@ -1,12 +1,14 @@
+from datetime import date, datetime, time, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from typing import List
+from typing import List, Literal, Optional
 
 from ..auth import CurrentUser, get_current_user
 from ..database import get_db
-from ..models import Product, ProductPrice, PriceList, Notification
-from ..schemas import ProductCreate, ProductUpdate, ProductOut, ProductPriceOut, ProductPriceUpsert
+from ..models import Product, ProductPrice, PriceList, Notification, Sale, SaleItem
+from ..schemas import ProductCreate, ProductUpdate, ProductOut, ProductPriceOut, ProductPriceUpsert, AR_TZ
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -89,6 +91,40 @@ def list_products(
         q = q.filter(Product.active == True)  # noqa: E712
     products = q.order_by(Product.id.desc()).all()
     return [_build_product_out(p, db) for p in products]
+
+
+@router.get("/sales-summary")
+def sales_summary(
+    group_by: Literal["product", "type"] = "product",
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    client_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    """Cantidades vendidas agrupadas por producto o categoría (excluye compras a proveedores)."""
+    cols = [Product.type] if group_by == "type" else [Product.id, Product.name, Product.type]
+    qty = func.sum(SaleItem.quantity).label("quantity")
+    amount = func.sum(SaleItem.quantity * SaleItem.unit_price).label("amount")
+    q = (
+        db.query(*cols, qty, amount)
+        .join(Sale, Sale.id == SaleItem.sale_id)
+        .join(Product, Product.id == SaleItem.product_id)
+        .filter(Sale.sale_type == "sale")
+    )
+    if date_from:
+        q = q.filter(Sale.sale_date >= datetime.combine(date_from, time.min, AR_TZ))
+    if date_to:
+        q = q.filter(Sale.sale_date < datetime.combine(date_to + timedelta(days=1), time.min, AR_TZ))
+    if client_id:
+        q = q.filter(Sale.client_id == client_id)
+    rows = q.group_by(*cols).order_by(qty.desc()).all()
+
+    if group_by == "type":
+        return [{"type": r.type, "quantity": float(r.quantity), "amount": round(float(r.amount), 2)} for r in rows]
+    return [
+        {"product_id": r.id, "name": r.name, "type": r.type, "quantity": float(r.quantity), "amount": round(float(r.amount), 2)}
+        for r in rows
+    ]
 
 
 @router.put("/{product_id}", response_model=ProductOut)
