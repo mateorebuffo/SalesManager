@@ -33,6 +33,7 @@ export default function PaymentScreen({ theme, clients = [], pushToast, apiBase,
   const [balance, setBalance] = useState(null);   // cliente: lo que debe · proveedor: lo que le debemos
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState(readLastMethod);
+  const [extraNotes, setExtraNotes] = useState('');
   const [convertUSD, setConvertUSD] = useState(true);
   const [payDate, setPayDate] = useState(() => localToday());
   const [sheetOpen, setSheetOpen] = useState(true); // abre el buscador apenas se entra a "Cobro"
@@ -89,6 +90,7 @@ export default function PaymentScreen({ theme, clients = [], pushToast, apiBase,
         finalAmount = raw / venta;
         notes = `${method} = $${raw.toLocaleString('es-AR')}`;
       }
+      if (extraNotes.trim()) notes += `\n${extraNotes.trim()}`;
       const res = await apiFetch(
         `${apiBase}/clients/${client.id}/${isSupplier ? 'supplier-payments' : 'payments'}`,
         {
@@ -113,6 +115,7 @@ export default function PaymentScreen({ theme, clients = [], pushToast, apiBase,
       setClient(null);
       setAmount('');
       setPayDate(localToday());
+      setExtraNotes('');
       setQuery('');
       setSheetOpen(true);
     } catch (e) {
@@ -215,6 +218,24 @@ export default function PaymentScreen({ theme, clients = [], pushToast, apiBase,
           Convertir a USD (dólar blue)
         </label>
       )}
+
+      {/* Notas */}
+      <SectionHeader theme={theme} title="Notas" />
+      <div style={{ padding: '0 16px' }}>
+        <textarea
+          rows={2}
+          maxLength={440} // notas del pago: 500 en el backend, menos el método
+          placeholder="Opcional: descripción del pago…"
+          value={extraNotes}
+          onChange={e => setExtraNotes(e.target.value)}
+          style={{
+            width: '100%', fontSize: 15, borderRadius: 12,
+            border: `1px solid ${theme.border}`, background: theme.surfaceSunk, color: theme.text,
+            padding: '10px 14px', outline: 'none', boxSizing: 'border-box',
+            fontFamily: FONT_UI, resize: 'vertical',
+          }}
+        />
+      </div>
 
       {/* Confirmar */}
       <div style={{ padding: '16px 16px 24px' }}>
