@@ -1,8 +1,9 @@
 // src/design/screens/PaymentScreen.jsx
 // "Cobro" rápido desde la pantalla de inicio: elegir cliente/proveedor → monto
 // → método → confirmar. Misma lógica que los formularios de Clientes → Pagos
-// (POST /clients/{id}/payments, con conversión dólar blue para pesos) y
-// Proveedores → Dinero (POST /clients/{id}/supplier-payments).
+// (POST /clients/{id}/payments) y Proveedores → Dinero
+// (POST /clients/{id}/supplier-payments). Los pesos se pueden convertir a USD
+// con el dólar blue en ambos casos.
 
 import { useEffect, useRef, useState } from 'react';
 import { FONT_UI, FONT_MONO, money, PAY_NOTE_PRESETS, PESOS_NOTES } from '../tokens';
@@ -40,7 +41,7 @@ export default function PaymentScreen({ theme, clients = [], pushToast, apiBase,
   const amountRef = useRef(null);
 
   const isSupplier = !!client?.is_supplier;
-  const isPesos = !isSupplier && PESOS_NOTES.includes(method);
+  const isPesos = PESOS_NOTES.includes(method);
 
   async function fetchBalance(c) {
     if (c.is_supplier) {
